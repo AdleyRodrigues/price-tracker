@@ -1,15 +1,23 @@
 {
-  "name": "lg-price-tracker",
-  "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "name": "price-tracker",
+  "version": "2.0.0",
+  "description": "Rastreador automatizado e modular de preços com alertas ricos no Discord, validação headless via Playwright e automação no GitHub Actions.",
+  "main": "src/tracker.ts",
   "scripts": {
     "start": "ts-node src/tracker.ts",
+    "track:notebooks": "ts-node src/tracker.ts",
     "track:mercado": "ts-node src/tracker-supermercado.ts",
     "test": "vitest run"
   },
-  "keywords": [],
-  "author": "",
+  "keywords": [
+    "price-tracker",
+    "scraper",
+    "playwright",
+    "discord-bot",
+    "automation",
+    "deals"
+  ],
+  "author": "Adley Rodrigues",
   "license": "ISC",
   "packageManager": "pnpm@9.15.9",
   "type": "commonjs",
