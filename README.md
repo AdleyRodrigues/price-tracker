@@ -11,7 +11,7 @@
 
 ## 📖 Origem & Evolução do Projeto (Veio pelo LinkedIn? 👋)
 
-Se você chegou aqui através da minha [publicação no LinkedIn](https://www.linkedin.com/in/adleyrodrigues/), seja muito bem-vindo!
+Se você chegou aqui através da minha [publicação no LinkedIn](https://www.linkedin.com/in/adley-castro/), seja muito bem-vindo!
 
 ### ❄️ Como tudo começou: *O robô caçador de Ar-Condicionado LG*
 O projeto nasceu de uma dor pessoal muito comum ao comprar eletrodomésticos na internet:
