@@ -27,7 +27,7 @@ describe('verificador frontend com Playwright', () => {
 
       const oferta: Oferta = {
         loja: 'Comunidade (Promobit)',
-        titulo: 'Notebook Gamer Acer Nitro V15 RTX 4060',
+        titulo: 'Notebook Gamer ASUS TUF A15 RTX 4060',
         precoAVista: 5100.0,
         frete: 100,
         precoTotal: 5200.0,
@@ -58,7 +58,7 @@ describe('verificador frontend com Playwright', () => {
 
       const oferta: Oferta = {
         loja: 'Comunidade (Promobit)',
-        titulo: 'Notebook Gamer Acer Nitro V15 RTX 4060',
+        titulo: 'Notebook Gamer ASUS TUF A15 RTX 4060',
         precoAVista: 5200,
         frete: 100,
         precoTotal: 5300,
@@ -86,11 +86,11 @@ describe('verificador frontend com Playwright', () => {
 
       const oferta: Oferta = {
         loja: 'Amazon',
-        titulo: 'Notebook Gamer Acer Nitro V15 RTX 4060',
+        titulo: 'Notebook Gamer ASUS TUF A15 RTX 4060',
         precoAVista: 5200.0,
         frete: 0,
         precoTotal: 5200.0,
-        url: 'https://www.amazon.com.br/dp/B0FY41RGG9',
+        url: 'https://www.amazon.com.br/dp/B0ASUSTUF1',
         fonteId: 'amazon',
       };
 
@@ -99,30 +99,45 @@ describe('verificador frontend com Playwright', () => {
       expect(resultado.motivo).toContain('indisponível');
     });
 
-    it('aprova e confirma preço atualizado na Amazon', async () => {
+    it('aprova e confirma preço atualizado, parcelamento e cupom na Amazon', async () => {
       const mockPage = {
         goto: async () => {},
         locator: (seletor: string) => ({
           first: () => ({
             isVisible: async () => false,
-            innerText: async () => 'R$ 5.299,00',
+            innerText: async () => {
+              if (seletor.includes('.a-offscreen') || seletor.includes('.priceToPay')) {
+                return 'R$ 5.299,00';
+              }
+              if (seletor.includes('couponBadge') || seletor.includes('coupon')) {
+                return 'Economize R$ 200,00 com cupom';
+              }
+              if (seletor.includes('centerCol') || seletor.includes('corePrice')) {
+                return 'em até 10x de R$ 529,90 sem juros';
+              }
+              return 'R$ 5.299,00';
+            },
           }),
         }),
       } as any;
 
       const oferta: Oferta = {
         loja: 'Amazon',
-        titulo: 'Notebook Gamer Acer Nitro V15 RTX 4060',
+        titulo: 'Notebook Gamer ASUS TUF A15 RTX 4060',
         precoAVista: 5499.0,
         frete: 0,
         precoTotal: 5499.0,
-        url: 'https://www.amazon.com.br/dp/B0FY41RGG9',
+        url: 'https://www.amazon.com.br/dp/B0ASUSTUF1',
         fonteId: 'amazon',
       };
 
       const resultado = await verificarAmazon(mockPage, oferta);
       expect(resultado.valida).toBe(true);
       expect(resultado.precoConfirmado).toBe(5299.0);
+      expect(resultado.precoParceladoConfirmado).toBe(5299.0);
+      expect(resultado.detalhesParcelamentoConfirmado).toContain('10x de R$');
+      expect(resultado.cupomDescontoConfirmado).toBe(200.0);
+      expect(resultado.precoComCupomConfirmado).toBe(5099.0);
     });
   });
 
@@ -139,7 +154,7 @@ describe('verificador frontend com Playwright', () => {
 
       const oferta: Oferta = {
         loja: 'Loja Oficial LG',
-        titulo: 'Notebook Gamer LG Gram RTX 4060',
+        titulo: 'Notebook Gamer ASUS TUF RTX 4060',
         precoAVista: 6000.0,
         frete: 0,
         precoTotal: 6000.0,

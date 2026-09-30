@@ -2,9 +2,9 @@
 
 > **Sistema modular e automatizado de monitoramento de preços, cálculo de custo real (à vista + frete regional), validação headless via Playwright e alertas no Discord.**
 
-[![CI - Notebooks Gamer](https://github.com/AdleyRodrigues/price-tracker/actions/workflows/monitor.yml/badge.svg)](https://github.com/AdleyRodrigues/price-tracker/actions/workflows/monitor.yml)
+[![CI - ASUS TUF Gamer](https://github.com/AdleyRodrigues/price-tracker/actions/workflows/monitor.yml/badge.svg)](https://github.com/AdleyRodrigues/price-tracker/actions/workflows/monitor.yml)
 [![CI - Supermercado](https://github.com/AdleyRodrigues/price-tracker/actions/workflows/supermercado.yml/badge.svg)](https://github.com/AdleyRodrigues/price-tracker/actions/workflows/supermercado.yml)
-[![Tests](https://img.shields.io/badge/tests-65%20passed-brightgreen.svg)](https://github.com/AdleyRodrigues/price-tracker)
+[![Tests](https://img.shields.io/badge/tests-72%20passed-brightgreen.svg)](https://github.com/AdleyRodrigues/price-tracker)
 [![License: ISC](https://img.shields.io/badge/License-ISC-blue.svg)](LICENSE)
 
 ---
@@ -30,7 +30,7 @@ Para resolver isso, criei um script de automação e web scraping focado no mode
 ### 🔄 A Evolução: *De LG Tracker para um Price Tracker Modular*
 Após o objetivo original ser concluído com sucesso e o ar-condicionado comprado no melhor preço histórico, decidi não descartar a ferramenta.
 
-Por ser um projeto pessoal e vivo, **desacoplei o domínio rígido de ar-condicionado e transformei o repositório em uma engine genérica e modular de monitoramento**. Hoje, basta plugar novos scrapers, filtros e regras para rastrear qualquer categoria de produto conforme as minhas necessidades de consumo atuais.
+Por ser um projeto pessoal e vivo, **desacoplei o domínio rígido de ar-condicionado e transformei o repositório em uma engine genérica e modular de monitoramento**. Hoje, basta plugar novos scrapers, filtros e regras para rastrear qualquer categoria de produto conforme as minhas necessidades de consumo atuais (atualmente rastreando **Notebooks ASUS TUF RTX 4060/5050/5060** com parcelamento e cupons, além de **Achados de Supermercado** com >35% OFF).
 
 ---
 
@@ -39,7 +39,7 @@ Por ser um projeto pessoal e vivo, **desacoplei o domínio rígido de ar-condici
 ```mermaid
 graph TD
     A[CRON / GitHub Actions / Manual] --> B[Orquestrador Central]
-    B -->|Módulo 1: pnpm track:notebooks| C[Collector Notebooks Gamer]
+    B -->|Módulo 1: pnpm track:notebooks| C[Collector ASUS TUF]
     B -->|Módulo 2: pnpm track:mercado| D[Collector Supermercado]
     
     C --> E[Amazon Brasil]
@@ -47,29 +47,34 @@ graph TD
     
     D --> G[Mercado Livre Supermercado]
     
-    C --> H[Filtro Booleano de Hardware<br/>RTX 4060 / 5050]
+    C --> H[Filtro Estrito:<br/>ASUS TUF + RTX 4060 / 5050 / 5060]
     D --> I[Filtro de Desconto Real >= 35%]
     
-    H --> J[Validador Headless Playwright<br/>Anti-Bloqueio & Cache]
+    H --> J[Motor de Cupons & Parcelamento<br/>Calcula Menor Valor Real]
+    J --> K[Validador Headless Playwright<br/>Anti-Bloqueio & Cache]
     
-    J --> K[Cálculo Custo Real<br/>Preço + Frete Regional]
-    I --> L[Deduplicação 24h & Categorização]
+    K --> L[Ranking por Menor Custo Real<br/>À Vista vs Cupom + Frete]
+    I --> M[Deduplicação 24h & Categorização]
     
-    K --> M[Discord Webhook<br/>Pódio Top 3 Notebooks]
-    L --> N[Discord Webhook<br/>Achados de Mercado]
+    L --> N[Discord Webhook<br/>Pódio Top N ASUS TUF]
+    M --> O[Discord Webhook<br/>Achados de Mercado]
 ```
 
 ---
 
-### 1. 💻 Monitor de Notebooks Gamer (RTX 4060 / RTX 5050)
+### 1. 💻 Monitor ASUS TUF (RTX 4060 / RTX 5050 / RTX 5060)
 * **Ponto de entrada:** `src/tracker.ts` (`pnpm start` ou `pnpm track:notebooks`)
 * **Lojas monitoradas:** Amazon Brasil (Vitrines de busca e PDPs) e Promobit (APIs JSON e cards HTML da comunidade).
 * **Filtros de Hardware:**
-  - **Inclusão:** Exige obrigatoriamente `('notebook' OU 'laptop')` **E** `('4060' OU '5050')`.
-  - **Exclusão:** Bloqueia automaticamente desktops, PCs montados, placas de vídeo avulsas, periféricos (suportes, mesas, fontes, coolers, gabinetes, teclados, monitores) e produtos usados.
-  - **Piso de Corte:** R$ 3.800,00 (elimina acessórios e falsos positivos).
-* **Validação Real com Playwright:** Abre o Top 5 final em Chromium headless com bloqueio de mídia e rastreadores para checar estoque e confirmar o menor preço em ~10 segundos.
-* **Alertas no Discord:** Embed rico com pódio ordenado pelo custo total real (à vista + frete para o CEP regional), indicação de cupom e menção sonora (`@user`) para ofertas abaixo do teto de oportunidade.
+  - **Inclusão:** Exige cumulativamente `('notebook' OU 'laptop')` **E** `('asus tuf' OU 'tuf gaming')` **E** `('4060' OU '5050' OU '5060')`.
+  - **Exclusão:** Bloqueia automaticamente desktops, PCs montados, placas de vídeo avulsas, periféricos, outras marcas (Acer, Lenovo, Dell) e produtos usados.
+  - **Piso de Corte:** R$ 3.500,00 (elimina acessórios e falsos positivos).
+* **Condições Financeiras & Cupons:**
+  - **À vista:** Preço com desconto Pix + Frete regional.
+  - **Parcelado:** Exibe o total parcelado e as parcelas sem juros (ex: `10x de R$ 549,90`).
+  - **Cupons de Desconto:** Detecta cupons da comunidade e cupons clip da Amazon, calcula o valor final com desconto e reordena o pódio pelo **menor custo real efetivo**.
+* **Validação Real com Playwright:** Abre o Top 5 final em Chromium headless com bloqueio de mídia e rastreadores para checar estoque, parcelamento e cupons em ~10 segundos.
+* **Alertas no Discord:** Embed rico com pódio ordenado pelo menor valor efetivo, condições parceladas, cupom aplicado e menção sonora (`@user`) para ofertas abaixo do teto de oportunidade.
 
 ---
 

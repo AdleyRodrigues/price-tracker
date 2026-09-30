@@ -1,3 +1,7 @@
+import dotenv from 'dotenv';
+dotenv.config();
+
+import './config/env';
 import { coletarOfertas } from './services/collector';
 import { enviarParaDiscord } from './services/discord';
 import { ordenarPorTotal } from './domain/ranking';

@@ -7,7 +7,7 @@ import {
   FRETE_FALLBACK_LEVEROS,
   FRETE_FALLBACK_WEBCONTINENTAL,
 } from '../config/regras';
-import { ofertaBrutaValida } from '../domain/filtros';
+import { calcularPrecoComCupom, extrairInformacoesCupom, ofertaBrutaValida } from '../domain/filtros';
 import { extrairPreco, formatBRL } from '../lib/preco';
 import { FonteScraper, Oferta, OfertaBruta, toOferta } from '../types/oferta';
 
@@ -125,10 +125,28 @@ export function parsearAmazon(html: string, item: ItemCatalogo): OfertaBruta {
     throw new Error(`preço inválido extraído: "${precoBruto}"`);
   }
 
-  // Verificar se o preço extraído foi o valor parcelado total e há desconto Pix no buybox
-  const textoPrecoCentral = $('#centerCol, #apex_desktop, #corePrice_feature_div').text().replace(/\s+/g, ' ');
+  let precoParcelado: number | undefined;
+  let detalhesParcelamento: string | undefined;
+
+  // 3. Extrair parcelamento do box principal
+  const textoPrecoCentral = $('#centerCol, #apex_desktop, #corePrice_feature_div, #corePriceDisplay_desktop_feature_div')
+    .text()
+    .replace(/\s+/g, ' ');
+
+  const matchParcelas = textoPrecoCentral.match(/(?:em\s+at[ée]\s+)?(\d{1,2})x\s*(?:de\s*)?R\$\s*([\d.]+,\d{2})(?:\s*sem\s*juros)?/i);
+  if (matchParcelas) {
+    const qtd = parseInt(matchParcelas[1], 10);
+    const vParc = extrairPreco(matchParcelas[2]);
+    detalhesParcelamento = `${qtd}x de ${formatBRL(vParc)} sem juros`;
+    precoParcelado = Math.round(qtd * vParc * 100) / 100;
+  }
+
   const matchPix = textoPrecoCentral.match(/(\d+)%\s*off\s*à\s*vista/i);
   const matchTotalParcelado = textoPrecoCentral.match(/total\s*parcelado\s*R\$\s*([\d.]+,\d{2})/i);
+  if (matchTotalParcelado) {
+    precoParcelado = extrairPreco(matchTotalParcelado[1]);
+  }
+
   if (matchPix && matchTotalParcelado) {
     const totalParcelado = extrairPreco(matchTotalParcelado[1]);
     const pctDesc = parseInt(matchPix[1], 10);
@@ -137,6 +155,13 @@ export function parsearAmazon(html: string, item: ItemCatalogo): OfertaBruta {
       console.log(`[Amazon] desconto Pix de ${pctDesc}% aplicado sobre parcelado ${formatBRL(totalParcelado)} => ${formatBRL(precoAVista)}`);
     }
   }
+
+  // 4. Extrair cupons de desconto ativos na Amazon (clip coupons / promo tags)
+  const textoCupons = $('#couponBadge, [data-csa-c-coupon-type], .promoPriceBlockMessage, [id*="coupon"], #apex_desktop')
+    .text()
+    .replace(/\s+/g, ' ');
+  const cupomInfo = extrairInformacoesCupom(textoCupons);
+  const calculoCupom = calcularPrecoComCupom(precoAVista, cupomInfo);
 
   console.log(`[${item.loja}] preço bruto extraído: "${precoBruto}" => ${formatBRL(precoAVista)}`);
 
@@ -194,8 +219,13 @@ export function parsearAmazon(html: string, item: ItemCatalogo): OfertaBruta {
     loja: nomeLoja,
     titulo: item.produto,
     precoAVista,
+    precoParcelado,
+    detalhesParcelamento,
     frete,
     url: item.url,
+    cupomTag: calculoCupom.cupomTag,
+    cupomDesconto: calculoCupom.cupomDesconto,
+    precoComCupom: calculoCupom.precoComCupom !== undefined ? calculoCupom.precoComCupom + frete : undefined,
     fonteId: 'amazon',
     sku: item.sku,
   };
@@ -231,6 +261,22 @@ export function parsearBuscaAmazon(html: string, item: ItemCatalogo): Oferta[] {
 
     if (!ofertaBrutaValida(titulo, precoAVista)) continue;
 
+    // Extrair parcelamento do card de busca
+    const textoCard = card.text().replace(/\s+/g, ' ');
+    let precoParcelado: number | undefined;
+    let detalhesParcelamento: string | undefined;
+    const matchParc = textoCard.match(/(?:em\s+at[ée]\s+)?(\d{1,2})x\s*(?:de\s*)?R\$\s*([\d.]+,\d{2})(?:\s*sem\s*juros)?/i);
+    if (matchParc) {
+      const qtd = parseInt(matchParc[1], 10);
+      const vParc = extrairPreco(matchParc[2]);
+      detalhesParcelamento = `${qtd}x de ${formatBRL(vParc)} sem juros`;
+      precoParcelado = Math.round(qtd * vParc * 100) / 100;
+    }
+
+    // Extrair cupom do card de busca (ex: "Cupom de R$ 200", "Economize 5%")
+    const cupomInfo = extrairInformacoesCupom(textoCard);
+    const calculoCupom = calcularPrecoComCupom(precoAVista, cupomInfo);
+
     const hrefRel = card.find('h2 a, a.a-link-normal[href*="/dp/"]').first().attr('href') ?? '';
     let url = hrefRel.startsWith('http')
       ? hrefRel
@@ -255,8 +301,13 @@ export function parsearBuscaAmazon(html: string, item: ItemCatalogo): Oferta[] {
       loja: 'Amazon',
       titulo,
       precoAVista,
+      precoParcelado,
+      detalhesParcelamento,
       frete,
       url,
+      cupomTag: calculoCupom.cupomTag,
+      cupomDesconto: calculoCupom.cupomDesconto,
+      precoComCupom: calculoCupom.precoComCupom !== undefined ? calculoCupom.precoComCupom + frete : undefined,
       fonteId: 'amazon',
       sku: asin,
     };
@@ -271,7 +322,7 @@ let cachedAmazonCookies: string | null = null;
 let lastCookieTime = 0;
 
 export async function obterCookiesAmazonCep(
-  cep = process.env.CEP_DESTINO?.replace(/\D/g, '') || '01001000',
+  cep = CEP.replace(/\D/g, '') || '01001000',
   forceFresh = false
 ): Promise<string> {
   const agora = Date.now();

@@ -12,9 +12,9 @@ import {
 describe('amazon scraper', () => {
   const itemExemplo: ItemCatalogo = {
     loja: 'Amazon',
-    produto: 'Notebook Gamer Acer Nitro V15 RTX 4060',
-    sku: 'B0FY41RGG9',
-    url: 'https://www.amazon.com.br/dp/B0FY41RGG9',
+    produto: 'Notebook Gamer ASUS TUF A15 RTX 4060',
+    sku: 'B0ASUSTUF1',
+    url: 'https://www.amazon.com.br/dp/B0ASUSTUF1',
     parser: 'amazon',
     freteFallback: 0,
   };
@@ -38,12 +38,18 @@ describe('amazon scraper', () => {
   });
 
   describe('parsearAmazon', () => {
-    it('extrai preço e frete explícito de entrega com sucesso', () => {
+    it('extrai preço, parcelamento, cupom e frete explícito com sucesso', () => {
       const html = `
         <html>
           <body>
             <div id="corePrice_feature_div">
               <span class="a-offscreen">R$ 5.499,00</span>
+            </div>
+            <div id="centerCol">
+              <span>em até 10x de R$ 549,90 sem juros</span>
+            </div>
+            <div id="couponBadge">
+              <span>Economize R$ 300,00 com cupom</span>
             </div>
             <div id="merchant-info">Vendido por Amazon.com.br</div>
             <div id="deliveryBlockMessage">
@@ -54,6 +60,10 @@ describe('amazon scraper', () => {
       `;
       const bruta = parsearAmazon(html, itemExemplo);
       expect(bruta.precoAVista).toBe(5499.0);
+      expect(bruta.precoParcelado).toBe(5499.0);
+      expect(bruta.detalhesParcelamento).toContain('10x de R$');
+      expect(bruta.cupomDesconto).toBe(300.0);
+      expect(bruta.precoComCupom).toBe(5199.0);
       expect(bruta.frete).toBe(0);
       expect(bruta.loja).toBe('Amazon');
       expect(bruta.fonteId).toBe('amazon');
@@ -121,25 +131,26 @@ describe('amazon scraper', () => {
   });
 
   describe('parsearBuscaAmazon', () => {
-    it('extrai múltiplos resultados válidos de notebook gamer da página de busca', () => {
+    it('extrai múltiplos resultados válidos de ASUS TUF da página de busca', () => {
       const html = `
         <html>
           <body>
-            <div data-component-type="s-search-result" data-asin="B0FY41RGG9">
+            <div data-component-type="s-search-result" data-asin="B0ASUSTUF1">
               <h2>
-                <a href="/dp/B0FY41RGG9">
-                  <span>Notebook Gamer Acer Nitro V15 RTX 4060 16GB RAM</span>
+                <a href="/dp/B0ASUSTUF1">
+                  <span>Notebook Gamer ASUS TUF Gaming A15 RTX 4060 16GB RAM</span>
                 </a>
               </h2>
               <div class="a-price">
                 <span class="a-offscreen">R$ 5.299,00</span>
               </div>
+              <span>em até 10x de R$ 529,90 sem juros</span>
               <span aria-label="Entrega GRÁTIS">Entrega GRÁTIS</span>
             </div>
             <div data-component-type="s-search-result" data-asin="B0DESKTOP1">
               <h2>
                 <a href="/dp/B0DESKTOP1">
-                  <span>Desktop Gamer Intel i7 RTX 4060</span>
+                  <span>Desktop Gamer ASUS TUF Intel i7 RTX 4060</span>
                 </a>
               </h2>
               <div class="a-price">
@@ -150,16 +161,18 @@ describe('amazon scraper', () => {
         </html>
       `;
       const itemBusca: ItemCatalogo = {
-        loja: 'Amazon (Busca RTX 4060)',
-        produto: 'Notebook Gamer RTX 4060',
-        url: 'https://www.amazon.com.br/s?k=notebook+rtx+4060',
+        loja: 'Amazon (Busca ASUS TUF 4060)',
+        produto: 'Notebook ASUS TUF RTX 4060',
+        url: 'https://www.amazon.com.br/s?k=notebook+asus+tuf+rtx+4060',
         parser: 'amazon',
       };
       const ofertas = parsearBuscaAmazon(html, itemBusca);
       expect(ofertas).toHaveLength(1);
-      expect(ofertas[0].titulo).toContain('Acer Nitro V15 RTX 4060');
+      expect(ofertas[0].titulo).toContain('ASUS TUF Gaming A15 RTX 4060');
       expect(ofertas[0].precoAVista).toBe(5299.0);
-      expect(ofertas[0].url).toBe('https://www.amazon.com.br/dp/B0FY41RGG9');
+      expect(ofertas[0].precoParcelado).toBe(5299.0);
+      expect(ofertas[0].detalhesParcelamento).toContain('10x de R$');
+      expect(ofertas[0].url).toBe('https://www.amazon.com.br/dp/B0ASUSTUF1');
       expect(ofertas[0].frete).toBe(0);
     });
   });

@@ -2,12 +2,18 @@ import { Browser, BrowserContext, chromium, Page } from 'playwright';
 import { extrairPreco, formatBRL } from '../lib/preco';
 import { Oferta, toOferta } from '../types/oferta';
 import { CHROME_HEADERS } from '../config/http';
+import { calcularPrecoComCupom, extrairInformacoesCupom } from '../domain/filtros';
 
 export interface ResultadoVerificacao {
   oferta: Oferta;
   valida: boolean;
   motivo?: string;
   precoConfirmado?: number;
+  precoParceladoConfirmado?: number;
+  detalhesParcelamentoConfirmado?: string;
+  cupomTagConfirmado?: string;
+  cupomDescontoConfirmado?: number;
+  precoComCupomConfirmado?: number;
   freteConfirmado?: number;
 }
 
@@ -46,7 +52,6 @@ export async function verificarPromobit(page: Page, oferta: Oferta): Promise<Res
     .isVisible()
     .catch(() => false);
 
-  // Se não tem botão de ir pra loja e só tem "Ativar Alerta", a oferta encerrou
   if (!botaoIrLoja && temAlerta) {
     return {
       oferta,
@@ -74,6 +79,11 @@ export async function verificarPromobit(page: Page, oferta: Oferta): Promise<Res
     oferta,
     valida: true,
     precoConfirmado,
+    precoParceladoConfirmado: oferta.precoParcelado,
+    detalhesParcelamentoConfirmado: oferta.detalhesParcelamento,
+    cupomTagConfirmado: oferta.cupomTag,
+    cupomDescontoConfirmado: oferta.cupomDesconto,
+    precoComCupomConfirmado: oferta.precoComCupom,
   };
 }
 
@@ -110,10 +120,43 @@ export async function verificarAmazon(page: Page, oferta: Oferta): Promise<Resul
     if (extraido > 0) precoConfirmado = extraido;
   }
 
+  // 3. Extrai parcelamento da página
+  const textoContainer = await page
+    .locator('#centerCol, #apex_desktop, #corePrice_desktop')
+    .first()
+    .innerText()
+    .catch(() => '');
+
+  let precoParceladoConfirmado = oferta.precoParcelado;
+  let detalhesParcelamentoConfirmado = oferta.detalhesParcelamento;
+
+  const matchParc = textoContainer.match(/(?:em\s+at[ée]\s+)?(\d{1,2})x\s*(?:de\s*)?R\$\s*([\d.]+,\d{2})(?:\s*sem\s*juros)?/i);
+  if (matchParc) {
+    const qtd = parseInt(matchParc[1], 10);
+    const vParc = extrairPreco(matchParc[2]);
+    detalhesParcelamentoConfirmado = `${qtd}x de ${formatBRL(vParc)} sem juros`;
+    precoParceladoConfirmado = Math.round(qtd * vParc * 100) / 100;
+  }
+
+  // 4. Extrai cupom clip da página
+  const textoCupom = await page
+    .locator('#couponBadge, [data-csa-c-coupon-type], .promoPriceBlockMessage, [id*="coupon"]')
+    .first()
+    .innerText()
+    .catch(() => '');
+
+  const cupomInfo = extrairInformacoesCupom(textoCupom);
+  const calculoCupom = calcularPrecoComCupom(precoConfirmado, cupomInfo);
+
   return {
     oferta,
     valida: true,
     precoConfirmado,
+    precoParceladoConfirmado,
+    detalhesParcelamentoConfirmado,
+    cupomTagConfirmado: calculoCupom.cupomTag || oferta.cupomTag,
+    cupomDescontoConfirmado: calculoCupom.cupomDesconto || oferta.cupomDesconto,
+    precoComCupomConfirmado: calculoCupom.precoComCupom !== undefined ? calculoCupom.precoComCupom + oferta.frete : oferta.precoComCupom,
   };
 }
 
@@ -213,15 +256,24 @@ export async function validarTopOfertasComPlaywright(
       }
 
       let ofertaFinal = oferta;
-      if (resultado.precoConfirmado && resultado.precoConfirmado !== oferta.precoAVista) {
+      const precoFinalConfirmado = resultado.precoConfirmado ?? oferta.precoAVista;
+      const alterouPreco = precoFinalConfirmado !== oferta.precoAVista;
+
+      ofertaFinal = toOferta({
+        ...oferta,
+        precoAVista: precoFinalConfirmado,
+        precoParcelado: resultado.precoParceladoConfirmado ?? oferta.precoParcelado,
+        detalhesParcelamento: resultado.detalhesParcelamentoConfirmado ?? oferta.detalhesParcelamento,
+        cupomTag: resultado.cupomTagConfirmado ?? oferta.cupomTag,
+        cupomDesconto: resultado.cupomDescontoConfirmado ?? oferta.cupomDesconto,
+        precoComCupom: resultado.precoComCupomConfirmado ?? oferta.precoComCupom,
+        fonteId: oferta.fonteId || 'verificado',
+      });
+
+      if (alterouPreco) {
         console.log(
-          `[Playwright Frontend] Preço atualizado no front: ${formatBRL(oferta.precoAVista)} -> ${formatBRL(resultado.precoConfirmado)}`
+          `[Playwright Frontend] Preço atualizado no front: ${formatBRL(oferta.precoAVista)} -> ${formatBRL(precoFinalConfirmado)}`
         );
-        ofertaFinal = toOferta({
-          ...oferta,
-          precoAVista: resultado.precoConfirmado,
-          fonteId: oferta.fonteId || 'verificado',
-        });
       }
 
       console.log(`[Playwright Frontend] ✅ OFERTA APROVADA: ${ofertaFinal.loja} - ${formatBRL(ofertaFinal.precoTotal)}`);

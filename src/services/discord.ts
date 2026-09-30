@@ -15,15 +15,32 @@ export function corDoVencedor(loja: string): number {
 
 export function formatarItemField(o: Oferta, index: number): { name: string; value: string; inline: boolean } {
   const medalhas = ['🥇 1º', '🥈 2º', '🥉 3º', '🎖️ 4º', '🎖️ 5º', '6º', '7º', '8º', '9º', '10º'];
-  const cupom = o.cupomTag ? `\nCupom: \`${o.cupomTag}\`` : '';
   const freteTxt = o.frete === 0 ? 'frete grátis' : `frete ${formatBRL(o.frete)}`;
+
+  let linhas: string[] = [
+    `${o.titulo}`,
+    `💵 À vista: ${formatBRL(o.precoAVista)} + ${freteTxt} = **Total: ${formatBRL(o.precoTotal)}**`,
+  ];
+
+  if (o.precoParcelado || o.detalhesParcelamento) {
+    const txtParc = o.detalhesParcelamento
+      ? `${o.detalhesParcelamento}`
+      : `${formatBRL(o.precoParcelado!)}`;
+    linhas.push(`💳 Parcelado: ${formatBRL(o.precoParcelado ?? o.precoAVista)} (${txtParc})`);
+  }
+
+  if (o.cupomTag) {
+    const txtCupomPreco = o.precoComCupom
+      ? ` (Total c/ cupom: **${formatBRL(o.precoComCupom)}**)`
+      : '';
+    linhas.push(`🎟️ Cupom: \`${o.cupomTag}\`${txtCupomPreco}`);
+  }
+
+  linhas.push(`🔗 [Ver oferta](${o.url})`);
+
   return {
     name: `${medalhas[index] || `${index + 1}º`} — ${o.loja}`,
-    value:
-      `${o.titulo}\n` +
-      `À vista ${formatBRL(o.precoAVista)} + ${freteTxt}\n` +
-      `**Total: ${formatBRL(o.precoTotal)}**${cupom}\n` +
-      `[Ver oferta](${o.url})`,
+    value: linhas.join('\n'),
     inline: false,
   };
 }
@@ -43,18 +60,19 @@ export function montarPayloadDiscord(
 
   const lugares = podio(ofertas, tamanho);
   const fields = lugares.map((o, i) => formatarItemField(o, i));
-  const ehAlertaCritico = melhor.precoTotal <= THRESHOLD_ALERTA_CRITICO;
-  const mencao = ehAlertaCritico ? `<@${userId}> 🚨 **OPORTUNIDADE ABAIXO DE ${formatBRL(THRESHOLD_ALERTA_CRITICO)}!**\n` : '';
+  const menorPrecoEfetivo = melhor.precoComCupom ?? melhor.precoTotal;
+  const ehAlertaCritico = menorPrecoEfetivo <= THRESHOLD_ALERTA_CRITICO;
+  const mencao = ehAlertaCritico ? `<@${userId}> 🚨 **OPORTUNIDADE ASUS TUF ABAIXO DE ${formatBRL(THRESHOLD_ALERTA_CRITICO)}!**\n` : '';
 
   return {
-    content: `${mencao}Pódio atualizado (Top ${lugares.length}) — menor custo total (à vista + frete).`,
+    content: `${mencao}Pódio atualizado (Top ${lugares.length}) — ASUS TUF (RTX 4060 / 5050 / 5060).`,
     embeds: [
       {
-        title: '💻 Monitor de Notebooks Gamer (RTX 4060 / 5050)',
+        title: '💻 Monitor ASUS TUF (RTX 4060 / 5050 / 5060)',
         url: melhor.url,
         description:
-          `Comparativo de Notebooks Gamer (Top ${lugares.length}) para o CEP **${cep}**.\n` +
-          `Melhor oferta: **${melhor.loja}** por **${formatBRL(melhor.precoTotal)}**\n` +
+          `Comparativo ASUS TUF Gamer (Top ${lugares.length}) para o CEP **${cep}**.\n` +
+          `Melhor oferta: **${melhor.loja}** por **${formatBRL(menorPrecoEfetivo)}**\n` +
           `Fontes em paralelo: Amazon e Comunidade (Promobit).\n\n` +
           `${melhor.titulo}`,
         color: corDoVencedor(melhor.loja),

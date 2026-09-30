@@ -14,6 +14,7 @@ function lerEnv(chave: string, fallback: string): string {
 
 export const WEBHOOK_URL = lerEnv('WEBHOOK_URL', WEBHOOK_FALLBACK);
 export const USER_ID = lerEnv('USER_ID', USER_ID_FALLBACK);
+export const CEP_DESTINO = lerEnv('CEP_DESTINO', '01001-000');
 
 /** Webhook exclusivo de supermercado. Sem fallback para o canal principal. */
 export const DISCORD_SUPERMERCADO_WEBHOOK_URL = process.env.DISCORD_SUPERMERCADO_WEBHOOK_URL;

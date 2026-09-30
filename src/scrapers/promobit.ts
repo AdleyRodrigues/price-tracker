@@ -4,7 +4,7 @@ import {
   FRETE_FALLBACK_COMUNIDADE,
   TERMOS_BUSCA,
 } from '../config/regras';
-import { ofertaBrutaValida } from '../domain/filtros';
+import { calcularPrecoComCupom, extrairInformacoesCupom, ofertaBrutaValida } from '../domain/filtros';
 import { extrairPreco, formatBRL } from '../lib/preco';
 import { FonteScraper, Oferta, OfertaBruta, toOferta } from '../types/oferta';
 
@@ -15,6 +15,8 @@ export interface PromobitOffer {
   offer_slug?: string;
   offer_status_name?: string;
   offer_cta?: string | null;
+  offer_installments?: number | null;
+  offer_price_installment?: number | null;
 }
 
 export function montarOfertaComunidade(
@@ -22,19 +24,32 @@ export function montarOfertaComunidade(
   precoPostagem: number,
   url: string,
   cupomMencionado: boolean,
-  cupomCodigo?: string | null
+  cupomCodigo?: string | null,
+  textoContexto = '',
+  precoParcelado?: number,
+  detalhesParcelamento?: string
 ): Oferta {
+  const cupomInfo = extrairInformacoesCupom(`${cupomCodigo ?? ''} ${textoContexto} ${titulo}`);
+  if (cupomCodigo && !cupomInfo.cupomTag) {
+    cupomInfo.cupomTag = cupomCodigo.trim().toUpperCase();
+  }
+
+  const calculoCupom = calcularPrecoComCupom(precoPostagem, cupomInfo);
+
   const bruta: OfertaBruta = {
     loja: 'Comunidade (Promobit)',
     titulo,
     precoAVista: precoPostagem,
+    precoParcelado,
+    detalhesParcelamento,
     frete: FRETE_FALLBACK_COMUNIDADE,
     url,
+    cupomTag: calculoCupom.cupomTag || (cupomMencionado ? 'Cupom' : undefined),
+    cupomDesconto: calculoCupom.cupomDesconto,
+    precoComCupom: calculoCupom.precoComCupom !== undefined ? calculoCupom.precoComCupom + FRETE_FALLBACK_COMUNIDADE : undefined,
     fonteId: 'promobit',
   };
-  if (cupomMencionado || cupomCodigo) {
-    bruta.cupomTag = cupomCodigo?.trim() || 'Cupom';
-  }
+
   return toOferta(bruta);
 }
 
@@ -47,7 +62,7 @@ export function varrerCardsPromobit(html: string): Oferta[] {
     const card = $(el);
     const texto = card.text().replace(/\s+/g, ' ').trim();
     if (texto.length < 20 || texto.length > 800) continue;
-    if (!/notebook|laptop/i.test(texto) || !/4060|5050/i.test(texto)) continue;
+    if (!/notebook|laptop/i.test(texto) || !/4060|5050|5060/i.test(texto) || !/tuf/i.test(texto)) continue;
 
     const titulo =
       card.find('h1, h2, h3, a').first().text().replace(/\s+/g, ' ').trim() ||
@@ -63,6 +78,17 @@ export function varrerCardsPromobit(html: string): Oferta[] {
 
     if (!ofertaBrutaValida(titulo, preco, texto)) continue;
 
+    // Extrair parcelamento do texto do card se houver
+    let precoParcelado: number | undefined;
+    let detalhesParcelamento: string | undefined;
+    const matchParc = texto.match(/(?:em\s+at[ée]\s+)?(\d{1,2})x\s*(?:de\s*)?R\$\s*([\d.]+,\d{2})(?:\s*sem\s*juros)?/i);
+    if (matchParc) {
+      const qtd = parseInt(matchParc[1], 10);
+      const vParc = extrairPreco(matchParc[2]);
+      detalhesParcelamento = `${qtd}x de ${formatBRL(vParc)} sem juros`;
+      precoParcelado = Math.round(qtd * vParc * 100) / 100;
+    }
+
     console.log(`[Comunidade (Promobit)] card HTML preço bruto: "${precoBruto}" => ${formatBRL(preco)}`);
     ofertas.push(
       montarOfertaComunidade(
@@ -70,7 +96,10 @@ export function varrerCardsPromobit(html: string): Oferta[] {
         preco,
         url,
         /cupom/i.test(texto),
-        texto.match(/cupom[:\s]+([A-Z0-9_-]{3,})/i)?.[1]
+        texto.match(/cupom[:\s]+([A-Z0-9_-]{3,})/i)?.[1],
+        texto,
+        precoParcelado,
+        detalhesParcelamento
       )
     );
   }
@@ -89,6 +118,16 @@ export function mapearJsonPromobit(item: PromobitOffer): Oferta | null {
 
   const url = `https://www.promobit.com.br/oferta/${slug}`;
 
+  let precoParcelado: number | undefined;
+  let detalhesParcelamento: string | undefined;
+  if (item.offer_price_installment && item.offer_price_installment > 0) {
+    precoParcelado = item.offer_price_installment;
+    if (item.offer_installments && item.offer_installments > 1) {
+      const vParc = Math.round((precoParcelado / item.offer_installments) * 100) / 100;
+      detalhesParcelamento = `${item.offer_installments}x de ${formatBRL(vParc)}`;
+    }
+  }
+
   console.log(
     `[Comunidade (Promobit)] JSON preço bruto: "${item.offer_price}" (${titulo.slice(0, 70)}) => ${formatBRL(preco)} + frete ${formatBRL(FRETE_FALLBACK_COMUNIDADE)}`
   );
@@ -98,7 +137,10 @@ export function mapearJsonPromobit(item: PromobitOffer): Oferta | null {
     preco,
     url,
     Boolean(item.offer_coupon) || /cupom/i.test(titulo),
-    item.offer_coupon
+    item.offer_coupon,
+    titulo,
+    precoParcelado,
+    detalhesParcelamento
   );
 }
 
