@@ -62,7 +62,7 @@ export function varrerCardsPromobit(html: string): Oferta[] {
     const card = $(el);
     const texto = card.text().replace(/\s+/g, ' ').trim();
     if (texto.length < 20 || texto.length > 800) continue;
-    if (!/notebook|laptop/i.test(texto) || !/4060|5050|5060/i.test(texto) || !/tuf/i.test(texto)) continue;
+    if (!/notebook|laptop/i.test(texto) || !/4060|5050|5060/i.test(texto) || !/asus/i.test(texto)) continue;
 
     const titulo =
       card.find('h1, h2, h3, a').first().text().replace(/\s+/g, ' ').trim() ||

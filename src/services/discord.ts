@@ -8,6 +8,10 @@ import { Oferta } from '../types/oferta';
 export function corDoVencedor(loja: string): number {
   const nome = loja.toLowerCase();
   if (nome.includes('comunidade') || nome.includes('promobit')) return 0xe67e22;
+  if (nome.includes('kabum')) return 0xff6500;
+  if (nome.includes('asus')) return 0x00539b;
+  if (nome.includes('magalu') || nome.includes('magazine')) return 0x0086ff;
+  if (nome.includes('shopee')) return 0xee4d2d;
   if (nome.includes('amazon')) return 0xff9900;
   if (nome.includes('lg')) return 0xa50034;
   return 0x2ecc71;
@@ -62,16 +66,16 @@ export function montarPayloadDiscord(
   const fields = lugares.map((o, i) => formatarItemField(o, i));
   const menorPrecoEfetivo = melhor.precoComCupom ?? melhor.precoTotal;
   const ehAlertaCritico = menorPrecoEfetivo <= THRESHOLD_ALERTA_CRITICO;
-  const mencao = ehAlertaCritico ? `<@${userId}> 🚨 **OPORTUNIDADE ASUS TUF ABAIXO DE ${formatBRL(THRESHOLD_ALERTA_CRITICO)}!**\n` : '';
+  const mencao = ehAlertaCritico ? `<@${userId}> 🚨 **OPORTUNIDADE ASUS 16:10 ABAIXO DE ${formatBRL(THRESHOLD_ALERTA_CRITICO)}!**\n` : '';
 
   return {
-    content: `${mencao}Pódio atualizado (Top ${lugares.length}) — ASUS TUF (RTX 4060 / 5050 / 5060).`,
+    content: `${mencao}Pódio atualizado (Top ${lugares.length}) — ASUS 16:10 (RTX 4060 / 5050 / 5060).`,
     embeds: [
       {
-        title: '💻 Monitor ASUS TUF (RTX 4060 / 5050 / 5060)',
+        title: '💻 Monitor ASUS 16:10 (RTX 4060 / 5050 / 5060)',
         url: melhor.url,
         description:
-          `Comparativo ASUS TUF Gamer (Top ${lugares.length}) para o CEP **${cep}**.\n` +
+          `Comparativo Notebooks ASUS 16:10 (Top ${lugares.length}) para o CEP **${cep}**.\n` +
           `Melhor oferta: **${melhor.loja}** por **${formatBRL(menorPrecoEfetivo)}**\n` +
           `Fontes em paralelo: Amazon e Comunidade (Promobit).\n\n` +
           `${melhor.titulo}`,

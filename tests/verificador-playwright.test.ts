@@ -27,7 +27,7 @@ describe('verificador frontend com Playwright', () => {
 
       const oferta: Oferta = {
         loja: 'Comunidade (Promobit)',
-        titulo: 'Notebook Gamer ASUS TUF A15 RTX 4060',
+        titulo: 'Notebook Gamer ASUS TUF A16 16" RTX 4060',
         precoAVista: 5100.0,
         frete: 100,
         precoTotal: 5200.0,
@@ -58,7 +58,7 @@ describe('verificador frontend com Playwright', () => {
 
       const oferta: Oferta = {
         loja: 'Comunidade (Promobit)',
-        titulo: 'Notebook Gamer ASUS TUF A15 RTX 4060',
+        titulo: 'Notebook Gamer ASUS TUF A16 16" RTX 4060',
         precoAVista: 5200,
         frete: 100,
         precoTotal: 5300,
@@ -86,7 +86,7 @@ describe('verificador frontend com Playwright', () => {
 
       const oferta: Oferta = {
         loja: 'Amazon',
-        titulo: 'Notebook Gamer ASUS TUF A15 RTX 4060',
+        titulo: 'Notebook Gamer ASUS TUF A16 16" RTX 4060',
         precoAVista: 5200.0,
         frete: 0,
         precoTotal: 5200.0,
@@ -123,7 +123,7 @@ describe('verificador frontend com Playwright', () => {
 
       const oferta: Oferta = {
         loja: 'Amazon',
-        titulo: 'Notebook Gamer ASUS TUF A15 RTX 4060',
+        titulo: 'Notebook Gamer ASUS TUF A16 16" RTX 4060',
         precoAVista: 5499.0,
         frete: 0,
         precoTotal: 5499.0,
@@ -154,7 +154,7 @@ describe('verificador frontend com Playwright', () => {
 
       const oferta: Oferta = {
         loja: 'Loja Oficial LG',
-        titulo: 'Notebook Gamer ASUS TUF RTX 4060',
+        titulo: 'Notebook Gamer ASUS TUF A16 16" RTX 4060',
         precoAVista: 6000.0,
         frete: 0,
         precoTotal: 6000.0,

@@ -3,8 +3,9 @@ import {
   PRECO_MINIMO,
   TITULO_BLOQUEADO,
   VALIDA_GPU,
-  VALIDA_LINHA_ASUS_TUF,
+  VALIDA_MARCA_ASUS,
   VALIDA_NOTEBOOK,
+  VALIDA_TELA_16_10,
 } from '../config/regras';
 import { Oferta } from '../types/oferta';
 import { extrairPreco } from '../lib/preco';
@@ -19,11 +20,14 @@ export function tituloBloqueado(titulo: string, sku?: string): boolean {
   // 2. Exige obrigatoriamente que seja notebook ou laptop
   if (!VALIDA_NOTEBOOK.test(textoCompleto)) return true;
 
-  // 3. Exige obrigatoriamente que seja da linha ASUS TUF
-  if (!VALIDA_LINHA_ASUS_TUF.test(textoCompleto)) return true;
+  // 3. Exige obrigatoriamente que seja da marca ASUS
+  if (!VALIDA_MARCA_ASUS.test(textoCompleto)) return true;
 
-  // 4. Exige obrigatoriamente que contenha GPU 4060, 5050 ou 5060
+  // 4. Exige obrigatoriamente que contenha GPU RTX 4060, 5050 ou 5060
   if (!VALIDA_GPU.test(textoCompleto)) return true;
+
+  // 5. Exige obrigatoriamente que a tela seja proporção 16:10 (16", 14.5", WUXGA, WQXGA, QHD+, A16, F16, G16, V16, etc.)
+  if (!VALIDA_TELA_16_10.test(textoCompleto)) return true;
 
   return false;
 }

@@ -11,7 +11,7 @@ describe('discord service', () => {
   const ofertas: Oferta[] = [
     {
       loja: 'Amazon',
-      titulo: 'Notebook Gamer ASUS TUF Gaming A15 Ryzen 7 RTX 4060 16GB',
+      titulo: 'Notebook Gamer ASUS TUF Gaming A16 16" 16:10 Ryzen 7 RTX 4060 16GB',
       precoAVista: 5600.0,
       precoParcelado: 5900.0,
       detalhesParcelamento: '10x de R$ 590,00 sem juros',
@@ -21,7 +21,7 @@ describe('discord service', () => {
     },
     {
       loja: 'Comunidade (Promobit)',
-      titulo: 'Notebook ASUS TUF Gaming A16 RTX 5050 16GB 512GB SSD',
+      titulo: 'Notebook ASUS TUF Gaming A16 16" RTX 5050 16GB 512GB SSD',
       precoAVista: 5499.0,
       frete: 100.0,
       precoTotal: 5599.0,
@@ -31,11 +31,11 @@ describe('discord service', () => {
     },
     {
       loja: 'Loja Oficial LG',
-      titulo: 'Laptop ASUS TUF Gaming F15 Intel Core i7 RTX 4060',
+      titulo: 'Laptop ASUS TUF Gaming F16 16" Intel Core i7 RTX 4060',
       precoAVista: 5800.0,
       frete: 0,
       precoTotal: 5800.0,
-      url: 'https://example.com/tuf-f15',
+      url: 'https://example.com/tuf-f16',
     },
   ];
 
@@ -57,7 +57,7 @@ describe('discord service', () => {
     it('formata campo individual com medalha, à vista, parcelado e link', () => {
       const field = formatarItemField(ofertas[0], 0);
       expect(field.name).toBe('🥇 1º — Amazon');
-      expect(field.value).toContain('ASUS TUF Gaming A15');
+      expect(field.value).toContain('ASUS TUF Gaming A16');
       expect(field.value).toContain('💵 À vista: R$');
       expect(field.value).toContain('💳 Parcelado: R$ 5.900,00 (10x de R$ 590,00 sem juros)');
       expect(field.value).toContain('frete grátis');
@@ -83,12 +83,12 @@ describe('discord service', () => {
   });
 
   describe('montarPayloadDiscord', () => {
-    it('cria estrutura com título "💻 Monitor ASUS TUF (RTX 4060 / 5050 / 5060)"', () => {
+    it('cria estrutura com título "💻 Monitor ASUS 16:10 (RTX 4060 / 5050 / 5060)"', () => {
       const payload = montarPayloadDiscord(ofertas, '123456789', '01001-000');
       expect(payload).not.toBeNull();
       expect(payload?.content).not.toContain('<@123456789>');
       expect(payload?.content).toContain('Pódio atualizado (Top 3)');
-      expect(payload?.embeds[0].title).toBe('💻 Monitor ASUS TUF (RTX 4060 / 5050 / 5060)');
+      expect(payload?.embeds[0].title).toBe('💻 Monitor ASUS 16:10 (RTX 4060 / 5050 / 5060)');
       expect(payload?.embeds[0].description).toContain('01001-000');
       expect(payload?.embeds[0].fields).toHaveLength(3);
       expect(payload?.embeds[0].fields[0].name).toBe('🥇 1º — Amazon');
@@ -98,7 +98,7 @@ describe('discord service', () => {
     it('dispara menção com ping sonoro quando o menor preço rompe o piso de alerta crítico', () => {
       const superOferta: Oferta = {
         loja: 'Amazon',
-        titulo: 'Notebook Gamer ASUS TUF A15 RTX 4060',
+        titulo: 'Notebook Gamer ASUS TUF A16 16" RTX 4060',
         precoAVista: 4200.0,
         frete: 0,
         precoTotal: 4200.0,
@@ -107,8 +107,8 @@ describe('discord service', () => {
       const payload = montarPayloadDiscord([superOferta, ...ofertas], '123456789', '01001-000');
       expect(payload).not.toBeNull();
       expect(payload?.content).toContain('<@123456789>');
-      expect(payload?.content).toContain('OPORTUNIDADE ASUS TUF ABAIXO DE');
-      expect(payload?.embeds[0].title).toBe('💻 Monitor ASUS TUF (RTX 4060 / 5050 / 5060)');
+      expect(payload?.content).toContain('OPORTUNIDADE ASUS 16:10 ABAIXO DE');
+      expect(payload?.embeds[0].title).toBe('💻 Monitor ASUS 16:10 (RTX 4060 / 5050 / 5060)');
     });
 
     it('retorna null se lista de ofertas for vazia', () => {

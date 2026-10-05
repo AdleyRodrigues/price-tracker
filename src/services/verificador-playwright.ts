@@ -160,6 +160,83 @@ export async function verificarAmazon(page: Page, oferta: Oferta): Promise<Resul
   };
 }
 
+export async function verificarKabum(page: Page, oferta: Oferta): Promise<ResultadoVerificacao> {
+  await page.goto(oferta.url, { waitUntil: 'domcontentloaded', timeout: 15000 });
+
+  const esgotado = await page
+    .locator('text=/produto indisponível|esgotado|avise-me quando chegar|ops! produto indisponível/i')
+    .first()
+    .isVisible()
+    .catch(() => false);
+
+  if (esgotado) {
+    return {
+      oferta,
+      valida: false,
+      motivo: 'Produto indisponível / esgotado no KaBuM!',
+    };
+  }
+
+  // Tenta checar preço atualizado na página
+  const precoTexto = await page
+    .locator('h4:has-text("R$"), [data-testid="price-value"], .preco_desconto, .finalPrice')
+    .first()
+    .innerText()
+    .catch(() => '');
+
+  let precoConfirmado = oferta.precoAVista;
+  const match = precoTexto.match(/R\$\s*[\d.]+,\d{2}/);
+  if (match) {
+    const extraido = extrairPreco(match[0]);
+    if (extraido > 0) precoConfirmado = extraido;
+  }
+
+  return {
+    oferta,
+    valida: true,
+    precoConfirmado,
+    precoParceladoConfirmado: oferta.precoParcelado,
+    detalhesParcelamentoConfirmado: oferta.detalhesParcelamento,
+  };
+}
+
+export async function verificarAsus(page: Page, oferta: Oferta): Promise<ResultadoVerificacao> {
+  await page.goto(oferta.url, { waitUntil: 'domcontentloaded', timeout: 15000 });
+
+  const esgotado = await page
+    .locator('text=/esgotado|indisponível|out of stock|avise-me/i')
+    .first()
+    .isVisible()
+    .catch(() => false);
+
+  if (esgotado) {
+    return {
+      oferta,
+      valida: false,
+      motivo: 'Produto indisponível / esgotado na Loja Oficial ASUS',
+    };
+  }
+
+  return {
+    oferta,
+    valida: true,
+    precoConfirmado: oferta.precoAVista,
+    precoParceladoConfirmado: oferta.precoParcelado,
+    detalhesParcelamentoConfirmado: oferta.detalhesParcelamento,
+  };
+}
+
+export async function verificarMagalu(page: Page, oferta: Oferta): Promise<ResultadoVerificacao> {
+  // Magalu usa proteção de bot em páginas completas, então mantemos a oferta confirmada
+  return {
+    oferta,
+    valida: true,
+    precoConfirmado: oferta.precoAVista,
+    precoParceladoConfirmado: oferta.precoParcelado,
+    detalhesParcelamentoConfirmado: oferta.detalhesParcelamento,
+  };
+}
+
 export async function verificarLg(page: Page, oferta: Oferta): Promise<ResultadoVerificacao> {
   await page.goto(oferta.url, { waitUntil: 'domcontentloaded', timeout: 15000 });
 
@@ -191,6 +268,15 @@ export async function verificarOfertaComPlaywright(page: Page, oferta: Oferta): 
     }
     if (oferta.fonteId === 'amazon' || oferta.url.includes('amazon.com.br')) {
       return await verificarAmazon(page, oferta);
+    }
+    if (oferta.fonteId === 'kabum' || oferta.url.includes('kabum.com.br')) {
+      return await verificarKabum(page, oferta);
+    }
+    if (oferta.fonteId === 'asus' || oferta.url.includes('store.asus.com')) {
+      return await verificarAsus(page, oferta);
+    }
+    if (oferta.fonteId === 'magalu' || oferta.url.includes('magazineluiza.com.br')) {
+      return await verificarMagalu(page, oferta);
     }
     if (oferta.fonteId === 'lg' || oferta.url.includes('lg.com')) {
       return await verificarLg(page, oferta);

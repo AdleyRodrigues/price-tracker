@@ -2,7 +2,7 @@
 
 > **Sistema modular e automatizado de monitoramento de preços, cálculo de custo real (à vista + frete regional), validação headless via Playwright e alertas no Discord.**
 
-[![CI - ASUS TUF Gamer](https://github.com/AdleyRodrigues/price-tracker/actions/workflows/monitor.yml/badge.svg)](https://github.com/AdleyRodrigues/price-tracker/actions/workflows/monitor.yml)
+[![CI - ASUS 16:10](https://github.com/AdleyRodrigues/price-tracker/actions/workflows/monitor.yml/badge.svg)](https://github.com/AdleyRodrigues/price-tracker/actions/workflows/monitor.yml)
 [![CI - Supermercado](https://github.com/AdleyRodrigues/price-tracker/actions/workflows/supermercado.yml/badge.svg)](https://github.com/AdleyRodrigues/price-tracker/actions/workflows/supermercado.yml)
 [![Tests](https://img.shields.io/badge/tests-72%20passed-brightgreen.svg)](https://github.com/AdleyRodrigues/price-tracker)
 [![License: ISC](https://img.shields.io/badge/License-ISC-blue.svg)](LICENSE)
@@ -30,7 +30,7 @@ Para resolver isso, criei um script de automação e web scraping focado no mode
 ### 🔄 A Evolução: *De LG Tracker para um Price Tracker Modular*
 Após o objetivo original ser concluído com sucesso e o ar-condicionado comprado no melhor preço histórico, decidi não descartar a ferramenta.
 
-Por ser um projeto pessoal e vivo, **desacoplei o domínio rígido de ar-condicionado e transformei o repositório em uma engine genérica e modular de monitoramento**. Hoje, basta plugar novos scrapers, filtros e regras para rastrear qualquer categoria de produto conforme as minhas necessidades de consumo atuais (atualmente rastreando **Notebooks ASUS TUF RTX 4060/5050/5060** com parcelamento e cupons, além de **Achados de Supermercado** com >35% OFF).
+Por ser um projeto pessoal e vivo, **desacoplei o domínio rígido de ar-condicionado e transformei o repositório em uma engine genérica e modular de monitoramento**. Hoje, basta plugar novos scrapers, filtros e regras para rastrear qualquer categoria de produto conforme as minhas necessidades de consumo atuais (atualmente rastreando **qualquer Notebook ASUS com tela 16:10 e placa RTX 4060, 5050 ou 5060** com parcelamento e cupons, além de **Achados de Supermercado** com >35% OFF).
 
 ---
 
@@ -39,7 +39,7 @@ Por ser um projeto pessoal e vivo, **desacoplei o domínio rígido de ar-condici
 ```mermaid
 graph TD
     A[CRON / GitHub Actions / Manual] --> B[Orquestrador Central]
-    B -->|Módulo 1: pnpm track:notebooks| C[Collector ASUS TUF]
+    B -->|Módulo 1: pnpm track:notebooks| C[Collector ASUS 16:10]
     B -->|Módulo 2: pnpm track:mercado| D[Collector Supermercado]
     
     C --> E[Amazon Brasil]
@@ -47,7 +47,7 @@ graph TD
     
     D --> G[Mercado Livre Supermercado]
     
-    C --> H[Filtro Estrito:<br/>ASUS TUF + RTX 4060 / 5050 / 5060]
+    C --> H[Filtro Estrito:<br/>ASUS + Tela 16:10 + RTX 4060/5050/5060]
     D --> I[Filtro de Desconto Real >= 35%]
     
     H --> J[Motor de Cupons & Parcelamento<br/>Calcula Menor Valor Real]
@@ -56,18 +56,22 @@ graph TD
     K --> L[Ranking por Menor Custo Real<br/>À Vista vs Cupom + Frete]
     I --> M[Deduplicação 24h & Categorização]
     
-    L --> N[Discord Webhook<br/>Pódio Top N ASUS TUF]
+    L --> N[Discord Webhook<br/>Pódio Top N ASUS 16:10]
     M --> O[Discord Webhook<br/>Achados de Mercado]
 ```
 
 ---
 
-### 1. 💻 Monitor ASUS TUF (RTX 4060 / RTX 5050 / RTX 5060)
+### 1. 💻 Monitor ASUS 16:10 (RTX 4060 / RTX 5050 / RTX 5060)
 * **Ponto de entrada:** `src/tracker.ts` (`pnpm start` ou `pnpm track:notebooks`)
 * **Lojas monitoradas:** Amazon Brasil (Vitrines de busca e PDPs) e Promobit (APIs JSON e cards HTML da comunidade).
 * **Filtros de Hardware:**
-  - **Inclusão:** Exige cumulativamente `('notebook' OU 'laptop')` **E** `('asus tuf' OU 'tuf gaming')` **E** `('4060' OU '5050' OU '5060')`.
-  - **Exclusão:** Bloqueia automaticamente desktops, PCs montados, placas de vídeo avulsas, periféricos, outras marcas (Acer, Lenovo, Dell) e produtos usados.
+  - **Inclusão:** Exige cumulativamente:
+    - `('notebook' OU 'laptop')`
+    - `Marca ASUS` (TUF, ROG Strix, Zephyrus, Vivobook Pro, ProArt, etc.)
+    - `Tela 16:10` (detecção por proporção `16:10`, dimensões `16"`, resoluções WUXGA `1920x1200`, WQXGA `2560x1600`, 2.8K `2880x1800`, 3.2K `3200x2000`, 4K+ `3840x2400` ou séries ASUS 16" como `A16`, `F16`, `G16`, `M16`, `V16`, `FX607`, `FA607`, `G614`, etc.)
+    - `GPU NVIDIA RTX 4060, 5050 ou 5060`
+  - **Exclusão:** Bloqueia automaticamente desktops, telas 16:9 convencionais (ex: 15.6" como A15/F15 ou 17.3"), PCs montados, placas de vídeo avulsas, periféricos, outras marcas (Acer, Lenovo, Dell) e produtos usados.
   - **Piso de Corte:** R$ 3.500,00 (elimina acessórios e falsos positivos).
 * **Condições Financeiras & Cupons:**
   - **À vista:** Preço com desconto Pix + Frete regional.
@@ -96,12 +100,12 @@ price-tracker/
 ├── src/
 │   ├── config/
 │   │   ├── catalogo.ts             # Alvos de busca e parâmetros de produtos
-│   │   ├── regras.ts               # Regex de hardware, fretes e pisos de preço
+│   │   ├── regras.ts               # Regex de hardware (ASUS 16:10 RTX), fretes e pisos
 │   │   ├── regras-supermercado.ts  # URLs e thresholds de desconto de supermercado
 │   │   ├── env.ts                  # Carregamento seguro e tipado de variáveis de ambiente
 │   │   └── http.ts                 # Cliente Axios com User-Agents reais e timeouts
 │   ├── domain/
-│   │   ├── filtros.ts              # Regras de inclusão/exclusão de hardware
+│   │   ├── filtros.ts              # Regras de inclusão/exclusão (ASUS, Tela 16:10, GPU)
 │   │   ├── filtros-supermercado.ts # Regras e categorização de supermercado
 │   │   └── ranking.ts              # Ordenação por custo real e formação de pódio
 │   ├── scrapers/
@@ -118,9 +122,9 @@ price-tracker/
 │   ├── tracker.ts                  # Orquestrador do monitor de notebooks
 │   └── tracker-supermercado.ts     # Orquestrador do monitor de supermercado
 ├── .github/workflows/
-│   ├── monitor.yml                 # CI/CD: Notebooks Gamer (Playwright cache + Concurrency)
+│   ├── monitor.yml                 # CI/CD: Notebooks ASUS 16:10 (Playwright cache + Concurrency)
 │   └── supermercado.yml            # CI/CD: Supermercado (Cache de estado + Concurrency)
-├── tests/                          # Suíte com 65 testes unitários e de integração (Vitest)
+├── tests/                          # Suíte de testes unitários e de integração (Vitest)
 ├── package.json
 └── tsconfig.json
 ```

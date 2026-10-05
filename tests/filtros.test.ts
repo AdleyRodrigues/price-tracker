@@ -37,37 +37,53 @@ describe('filtros domain', () => {
       expect(tituloBloqueado('ASUS TUF Gaming A15 RTX 4060 16GB SSD 512GB')).toBe(true);
     });
 
-    it('bloqueia notebooks de outras marcas (Acer, Lenovo, Dell, etc.)', () => {
-      expect(tituloBloqueado('Notebook Gamer Acer Nitro V15 RTX 4060')).toBe(true);
-      expect(tituloBloqueado('Laptop Dell G15 5530 RTX 4060')).toBe(true);
-      expect(tituloBloqueado('Notebook Lenovo Gamer LOQ RTX 5050')).toBe(true);
+    it('bloqueia notebooks de outras marcas (Acer, Lenovo, Dell, etc.) mesmo com 16:10', () => {
+      expect(tituloBloqueado('Notebook Gamer Acer Nitro 16 RTX 4060 WUXGA 16:10')).toBe(true);
+      expect(tituloBloqueado('Laptop Dell G16 7630 RTX 4060 16" QHD+')).toBe(true);
+      expect(tituloBloqueado('Notebook Lenovo Legion Pro 5 16" WQXGA RTX 5050')).toBe(true);
+    });
+
+    it('bloqueia notebooks ASUS que NÃO tenham tela 16:10 (ex: 15.6", 17.3", A15, F15 com 16:9)', () => {
+      expect(tituloBloqueado('Notebook Gamer ASUS TUF Gaming A15 FA507NV RTX 4060 15.6 FHD')).toBe(true);
+      expect(tituloBloqueado('Laptop ASUS TUF Gaming F15 Intel Core i7 RTX 4060 15.6"')).toBe(true);
+      expect(tituloBloqueado('Notebook ASUS ROG Strix G17 RTX 4060 17.3" FHD')).toBe(true);
     });
 
     it('bloqueia notebooks com outras GPUs (ex: 3050, 4050, 4070)', () => {
-      expect(tituloBloqueado('Notebook Gamer ASUS TUF Gaming A15 RTX 3050')).toBe(true);
-      expect(tituloBloqueado('Notebook Gamer ASUS TUF Gaming A15 RTX 4050')).toBe(true);
-      expect(tituloBloqueado('Laptop Gamer ASUS TUF Gaming F15 RTX 4070')).toBe(true);
+      expect(tituloBloqueado('Notebook Gamer ASUS TUF Gaming A16 RTX 3050 16"')).toBe(true);
+      expect(tituloBloqueado('Notebook Gamer ASUS ROG Strix G16 RTX 4050 16:10')).toBe(true);
+      expect(tituloBloqueado('Laptop Gamer ASUS Zephyrus G16 RTX 4070 16" WQXGA')).toBe(true);
     });
 
-    it('aceita notebooks e laptops ASUS TUF legítimos com RTX 4060, RTX 5050 ou RTX 5060', () => {
+    it('aceita qualquer notebook ASUS legítimo com tela 16:10 e RTX 4060, RTX 5050 ou RTX 5060', () => {
       expect(
         tituloBloqueado(
-          'Notebook Gamer ASUS TUF Gaming A15 FA507NV AMD Ryzen 7 16GB 512GB SSD RTX 4060'
+          'Notebook Asus Tuf Gaming F16 Fx608jhr Nvidia Rtx 5050 Intel Core i7 14650hx 8gb Ram 512gb Ssd Linux Keepos Tela 16" 165hz Nível Ips Cinza - Rv019'
         )
       ).toBe(false);
       expect(
         tituloBloqueado(
-          'Laptop ASUS TUF Gaming F15 Intel Core i7 16GB 512GB SSD RTX 4060 15.6 FHD 144Hz'
+          'Notebook ASUS TUF Gaming F16, Intel Core i5 RTX 5050, 8 GB, 512 GB SSD, KeepOS, 16.0” FHD, Jaeger Gray - FX608JHR-RV124'
         )
       ).toBe(false);
       expect(
         tituloBloqueado(
-          'Notebook ASUS TUF Gaming A16 AMD Ryzen 7 16GB 512GB SSD RTX 5050 16"'
+          'Notebook ASUS TUF Gaming A16 AMD Ryzen 7 16GB 512GB SSD RTX 4060 16" WUXGA 16:10'
         )
       ).toBe(false);
       expect(
         tituloBloqueado(
-          'Laptop ASUS TUF Gaming F16 Intel Core i7 16GB RAM 1TB SSD RTX 5060'
+          'Laptop ASUS ROG Strix G16 Intel Core i9 16GB RAM 1TB SSD RTX 5060 16 polegadas 240Hz'
+        )
+      ).toBe(false);
+      expect(
+        tituloBloqueado(
+          'Notebook ASUS Vivobook Pro 16 OLED Intel Core i9 32GB RTX 4060 3.2K 16:10'
+        )
+      ).toBe(false);
+      expect(
+        tituloBloqueado(
+          'Laptop ASUS Gamer V16 V3607VH RTX 5050 Core 5 16GB RAM 512GB SSD 1920x1200'
         )
       ).toBe(false);
     });
@@ -118,10 +134,10 @@ describe('filtros domain', () => {
   });
 
   describe('ofertaBrutaValida', () => {
-    it('valida oferta correta de notebook ASUS TUF', () => {
+    it('valida oferta correta de notebook ASUS 16:10', () => {
       expect(
         ofertaBrutaValida(
-          'Notebook Gamer ASUS TUF Gaming A15 RTX 4060 16GB SSD 512GB',
+          'Notebook Gamer ASUS TUF Gaming A16 RTX 4060 16GB SSD 512GB',
           5499.0,
           'APPROVED'
         )
@@ -141,7 +157,7 @@ describe('filtros domain', () => {
     it('rejeita se preço estiver abaixo do piso', () => {
       expect(
         ofertaBrutaValida(
-          'Notebook Gamer ASUS TUF A15 RTX 4060',
+          'Notebook Gamer ASUS TUF A16 RTX 4060',
           1800.0,
           'APPROVED'
         )
@@ -151,7 +167,7 @@ describe('filtros domain', () => {
     it('rejeita se status indicar encerrada', () => {
       expect(
         ofertaBrutaValida(
-          'Notebook Gamer ASUS TUF F15 RTX 4060',
+          'Notebook Gamer ASUS TUF F16 RTX 4060',
           4999.0,
           'Oferta encerrada'
         )
@@ -193,7 +209,7 @@ describe('filtros domain', () => {
     it('aceita oferta completa e válida', () => {
       const oferta: Oferta = {
         loja: 'Amazon',
-        titulo: 'Notebook Gamer ASUS TUF Gaming A15 FA507NV RTX 4060',
+        titulo: 'Notebook Gamer ASUS TUF Gaming A16 FA607NV RTX 4060',
         precoAVista: 5200.0,
         frete: 0,
         precoTotal: 5200.0,
@@ -205,7 +221,7 @@ describe('filtros domain', () => {
     it('rejeita oferta com frete negativo ou inválido', () => {
       const ofertaInvalida: Oferta = {
         loja: 'Amazon',
-        titulo: 'Notebook Gamer ASUS TUF A15 RTX 4060',
+        titulo: 'Notebook Gamer ASUS TUF A16 RTX 4060',
         precoAVista: 5200.0,
         frete: -10,
         precoTotal: 5190.0,

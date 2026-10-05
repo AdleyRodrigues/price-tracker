@@ -12,7 +12,7 @@ import {
 describe('amazon scraper', () => {
   const itemExemplo: ItemCatalogo = {
     loja: 'Amazon',
-    produto: 'Notebook Gamer ASUS TUF A15 RTX 4060',
+    produto: 'Notebook Gamer ASUS TUF A16 RTX 4060',
     sku: 'B0ASUSTUF1',
     url: 'https://www.amazon.com.br/dp/B0ASUSTUF1',
     parser: 'amazon',
@@ -131,14 +131,14 @@ describe('amazon scraper', () => {
   });
 
   describe('parsearBuscaAmazon', () => {
-    it('extrai múltiplos resultados válidos de ASUS TUF da página de busca', () => {
+    it('extrai múltiplos resultados válidos de ASUS 16:10 da página de busca', () => {
       const html = `
         <html>
           <body>
             <div data-component-type="s-search-result" data-asin="B0ASUSTUF1">
               <h2>
                 <a href="/dp/B0ASUSTUF1">
-                  <span>Notebook Gamer ASUS TUF Gaming A15 RTX 4060 16GB RAM</span>
+                  <span>Notebook Gamer ASUS TUF Gaming A16 RTX 4060 16GB RAM</span>
                 </a>
               </h2>
               <div class="a-price">
@@ -161,14 +161,14 @@ describe('amazon scraper', () => {
         </html>
       `;
       const itemBusca: ItemCatalogo = {
-        loja: 'Amazon (Busca ASUS TUF 4060)',
-        produto: 'Notebook ASUS TUF RTX 4060',
-        url: 'https://www.amazon.com.br/s?k=notebook+asus+tuf+rtx+4060',
+        loja: 'Amazon (Busca ASUS RTX 4060)',
+        produto: 'Notebook ASUS RTX 4060 (16:10)',
+        url: 'https://www.amazon.com.br/s?k=notebook+asus+rtx+4060',
         parser: 'amazon',
       };
       const ofertas = parsearBuscaAmazon(html, itemBusca);
       expect(ofertas).toHaveLength(1);
-      expect(ofertas[0].titulo).toContain('ASUS TUF Gaming A15 RTX 4060');
+      expect(ofertas[0].titulo).toContain('ASUS TUF Gaming A16 RTX 4060');
       expect(ofertas[0].precoAVista).toBe(5299.0);
       expect(ofertas[0].precoParcelado).toBe(5299.0);
       expect(ofertas[0].detalhesParcelamento).toContain('10x de R$');
