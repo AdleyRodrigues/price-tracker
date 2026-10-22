@@ -13,7 +13,7 @@ export function parsearShopee(html: string, item: ItemCatalogo): OfertaBruta {
 
   // 1. Tenta extrair do meta ou title tag
   const pageTitle = $('title').text().trim();
-  if (pageTitle && pageTitle.includes('ASUS')) {
+  if (pageTitle && !pageTitle.toLowerCase().startsWith('shopee brasil')) {
     titulo = pageTitle.replace(/\s*\|\s*Shopee\s*Brasil.*$/i, '').trim();
   }
 
@@ -39,7 +39,7 @@ export function parsearShopee(html: string, item: ItemCatalogo): OfertaBruta {
   console.log(`[Shopee] ${titulo} => à vista: ${formatBRL(precoAVista)}`);
 
   return {
-    loja: 'Shopee (Loja ASUS)',
+    loja: item.loja || 'Shopee',
     titulo,
     precoAVista,
     precoParcelado,

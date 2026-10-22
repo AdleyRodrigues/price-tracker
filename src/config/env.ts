@@ -19,6 +19,9 @@ export const CEP_DESTINO = lerEnv('CEP_DESTINO', '01001-000');
 /** Webhook exclusivo de supermercado. Sem fallback para o canal principal. */
 export const DISCORD_SUPERMERCADO_WEBHOOK_URL = process.env.DISCORD_SUPERMERCADO_WEBHOOK_URL;
 
+/** Webhook exclusivo de celular / smartphone (Xiaomi 17T Pro). */
+export const DISCORD_CELULAR_WEBHOOK_URL = process.env.DISCORD_CELULAR_WEBHOOK_URL;
+
 function normalizarWebhook(url: string): string {
   return url.trim().replace(/\/+$/, '');
 }
@@ -34,3 +37,12 @@ export function exigirWebhookSupermercado(): string {
   }
   return url;
 }
+
+export function exigirWebhookCelular(): string {
+  const url = DISCORD_CELULAR_WEBHOOK_URL?.trim();
+  if (!url) {
+    throw new Error('DISCORD_CELULAR_WEBHOOK_URL não configurado');
+  }
+  return url;
+}
+

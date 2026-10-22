@@ -7,6 +7,7 @@
     "start": "ts-node src/tracker.ts",
     "track:notebooks": "ts-node src/tracker.ts",
     "track:mercado": "ts-node src/tracker-supermercado.ts",
+    "track:celular": "ts-node src/tracker-celular.ts",
     "test": "vitest run"
   },
   "keywords": [

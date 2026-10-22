@@ -1,0 +1,48 @@
+name: Monitor - Xiaomi 17T Pro (e Linha T)
+
+on:
+  schedule:
+    - cron: '0 */4 * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  track:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Cache Playwright Binaries
+        id: playwright-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+
+      - name: Install Playwright Chromium
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Run Xiaomi smartphone tracker
+        run: pnpm exec ts-node src/tracker-celular.ts
+        env:
+          DISCORD_CELULAR_WEBHOOK_URL: ${{ secrets.DISCORD_CELULAR_WEBHOOK_URL }}
+          USER_ID: ${{ secrets.USER_ID }}
+          CEP_DESTINO: ${{ secrets.CEP_DESTINO || vars.CEP_DESTINO }}
