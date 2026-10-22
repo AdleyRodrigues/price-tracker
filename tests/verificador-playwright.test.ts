@@ -70,6 +70,39 @@ describe('verificador frontend com Playwright', () => {
       expect(resultado.valida).toBe(true);
       expect(resultado.precoConfirmado).toBe(5200);
     });
+
+    it('preserva o preço promocional da oferta e não sobrescreve com preço riscado (line-through)', async () => {
+      const mockPage = {
+        goto: async () => {},
+        locator: (seletor: string) => ({
+          first: () => ({
+            isVisible: async () => seletor.includes('Ir para a loja'),
+            innerText: async () => 'R$ 6.806,38', // Preço riscado de tabela
+          }),
+          filter: () => ({
+            first: () => ({
+              innerText: async () => 'R$ 6.806,38',
+            }),
+          }),
+        }),
+      } as any;
+
+      const oferta: Oferta = {
+        loja: 'Comunidade (Promobit)',
+        titulo: 'Celular Xiaomi Poco X8 Pro Max 5G NFC 256GB',
+        precoAVista: 2510.0,
+        precoParcelado: 2510.0,
+        frete: 0,
+        precoTotal: 2510.0,
+        url: 'https://www.promobit.com.br/oferta/poco-x8-ativa',
+        fonteId: 'promobit',
+      };
+
+      const resultado = await verificarPromobit(mockPage, oferta);
+      expect(resultado.valida).toBe(true);
+      // Deve preservar R$ 2.510,00 e NUNCA sobrescrever com o preço riscado R$ 6.806,38
+      expect(resultado.precoConfirmado).toBe(2510.0);
+    });
   });
 
   describe('verificarAmazon', () => {

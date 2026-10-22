@@ -60,19 +60,22 @@ export async function verificarPromobit(page: Page, oferta: Oferta): Promise<Res
     };
   }
 
-  // 3. Checa texto de preço renderizado no DOM
-  const precoTexto = await page
-    .locator('h2:has-text("R$"), div:has-text("R$"), span:has-text("R$")')
-    .filter({ hasText: /R\$\s*[\d.]+,\d{2}/ })
-    .first()
-    .innerText()
-    .catch(() => '');
-
-  const match = precoTexto.match(/R\$\s*[\d.]+,\d{2}/);
+  // 3. Mantém o preço promocional real da oferta (já validado pela API do Promobit).
+  // Nunca sobrescreve com elementos que possuam "line-through" (preço riscado "De:" antigo).
   let precoConfirmado = oferta.precoAVista;
-  if (match) {
-    const extraido = extrairPreco(match[0]);
-    if (extraido > 0) precoConfirmado = extraido;
+  if (!precoConfirmado || precoConfirmado <= 0) {
+    const precoTexto = await page
+      .locator('span:not([class*="line-through"]):not(s):not(del)')
+      .filter({ hasText: /R\$\s*[\d.]+,\d{2}/ })
+      .first()
+      .innerText()
+      .catch(() => '');
+
+    const match = precoTexto.match(/R\$\s*[\d.]+,\d{2}/);
+    if (match) {
+      const extraido = extrairPreco(match[0]);
+      if (extraido > 0) precoConfirmado = extraido;
+    }
   }
 
   return {
