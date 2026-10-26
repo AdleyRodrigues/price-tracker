@@ -1,9 +1,10 @@
-import axios from 'axios';
+﻿import axios from 'axios';
 import { USER_ID, WEBHOOK_URL } from '../config/env';
 import { CEP, TAMANHO_PODIO, THRESHOLD_ALERTA_CRITICO } from '../config/regras';
 import { podio } from '../domain/ranking';
 import { formatBRL } from '../lib/preco';
 import { Oferta } from '../types/oferta';
+import { extrairHardware, formatarBadgeHardware } from '../domain/hardware';
 
 export function corDoVencedor(loja: string): number {
   const nome = loja.toLowerCase();
@@ -12,6 +13,8 @@ export function corDoVencedor(loja: string): number {
   if (nome.includes('asus')) return 0x00539b;
   if (nome.includes('magalu') || nome.includes('magazine')) return 0x0086ff;
   if (nome.includes('shopee')) return 0xee4d2d;
+  if (nome.includes('mercadolivre') || nome.includes('mercado livre')) return 0xffe600;
+  if (nome.includes('qual notebook') || nome.includes('qnc')) return 0x3498db;
   if (nome.includes('amazon')) return 0xff9900;
   if (nome.includes('lg')) return 0xa50034;
   return 0x2ecc71;
@@ -20,11 +23,17 @@ export function corDoVencedor(loja: string): number {
 export function formatarItemField(o: Oferta, index: number): { name: string; value: string; inline: boolean } {
   const medalhas = ['🥇 1º', '🥈 2º', '🥉 3º', '🎖️ 4º', '🎖️ 5º', '6º', '7º', '8º', '9º', '10º'];
   const freteTxt = o.frete === 0 ? 'frete grátis' : `frete ${formatBRL(o.frete)}`;
+  const badgeHw = formatarBadgeHardware(o.titulo);
 
   let linhas: string[] = [
     `${o.titulo}`,
-    `💵 À vista: ${formatBRL(o.precoAVista)} + ${freteTxt} = **Total: ${formatBRL(o.precoTotal)}**`,
   ];
+
+  if (badgeHw) {
+    linhas.push(badgeHw);
+  }
+
+  linhas.push(`💵 À vista: ${formatBRL(o.precoAVista)} + ${freteTxt} = **Total: ${formatBRL(o.precoTotal)}**`);
 
   if (o.precoParcelado || o.detalhesParcelamento) {
     const txtParc = o.detalhesParcelamento
@@ -34,10 +43,11 @@ export function formatarItemField(o: Oferta, index: number): { name: string; val
   }
 
   if (o.cupomTag) {
+    const descCupomTxt = o.cupomDesconto && o.cupomDesconto > 0 ? ` [Economia: -${formatBRL(o.cupomDesconto)}]` : '';
     const txtCupomPreco = o.precoComCupom
       ? ` (Total c/ cupom: **${formatBRL(o.precoComCupom)}**)`
       : '';
-    linhas.push(`🎟️ Cupom: \`${o.cupomTag}\`${txtCupomPreco}`);
+    linhas.push(`🎟️ Cupom: \`${o.cupomTag}\`${descCupomTxt}${txtCupomPreco}`);
   }
 
   linhas.push(`🔗 [Ver oferta](${o.url})`);
@@ -77,7 +87,7 @@ export function montarPayloadDiscord(
         description:
           `Comparativo Notebooks ASUS 16:10 (Top ${lugares.length}) para o CEP **${cep}**.\n` +
           `Melhor oferta: **${melhor.loja}** por **${formatBRL(menorPrecoEfetivo)}**\n` +
-          `Fontes em paralelo: Amazon e Comunidade (Promobit).\n\n` +
+          `Fontes em paralelo: Amazon, Loja Oficial ASUS, Mercado Livre, Qual Notebook Comprar, KaBuM!, Magalu, Shopee e Promobit.\n\n` +
           `${melhor.titulo}`,
         color: corDoVencedor(melhor.loja),
         fields,
@@ -100,10 +110,13 @@ export async function enviarParaDiscord(ofertas: Oferta[]): Promise<void> {
   const medalhas = ['🥇 1º', '🥈 2º', '🥉 3º', '🎖️ 4º', '🎖️ 5º', '6º', '7º', '8º', '9º', '10º'];
   const lugares = podio(ofertas, TAMANHO_PODIO);
 
-  console.log(`\n📋 [PÓDIO CONSOLIDADO TOP ${lugares.length}]`);
+  console.log(`\n🏆 [PÓDIO CONSOLIDADO TOP ${lugares.length}]`);
   lugares.forEach((o, i) => {
+    const hw = extrairHardware(o.titulo);
+    const hwTxt = [hw.gpu, hw.cpu, hw.ram, hw.ssd].filter(Boolean).join(' | ');
+    const cupomTxt = o.cupomTag ? ` [🎟️ Cupom: ${o.cupomTag} => Pix ${formatBRL(o.precoComCupom ?? o.precoTotal)}]` : '';
     console.log(
-      `  ${medalhas[i] || `${i + 1}º`} ${o.loja} — à vista ${formatBRL(o.precoAVista)} + frete ${formatBRL(o.frete)} = ${formatBRL(o.precoTotal)}${o.cupomTag ? ` [Cupom: ${o.cupomTag}]` : ''}\n     ${o.titulo}\n     Link: ${o.url}`
+      `  ${medalhas[i] || `${i + 1}º`} ${o.loja} — à vista ${formatBRL(o.precoAVista)} + frete ${formatBRL(o.frete)} = ${formatBRL(o.precoTotal)}${cupomTxt}\n     ${hwTxt ? `[${hwTxt}]\n     ` : ''}${o.titulo}\n     Link: ${o.url}`
     );
   });
 

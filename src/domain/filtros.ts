@@ -15,7 +15,9 @@ export function tituloBloqueado(titulo: string, sku?: string): boolean {
   const textoCompleto = `${titulo} ${sku ?? ''}`;
 
   // 1. Bloqueios explícitos (desktop, pc gamer, placa de video, gpu, mesa, suporte, cooler, gabinete, fonte, monitor, teclado, usado)
-  if (TITULO_BLOQUEADO.test(textoCompleto)) return true;
+  // Ignora menções legítimas a teclado embutido de notebook (ex: "teclado iluminado")
+  const textoParaBloqueio = textoCompleto.replace(/teclado\s+(?:iluminado|retroiluminado|rgb|abnt\d?|chiclet)/gi, '');
+  if (TITULO_BLOQUEADO.test(textoParaBloqueio)) return true;
 
   // 2. Exige obrigatoriamente que seja notebook ou laptop
   if (!VALIDA_NOTEBOOK.test(textoCompleto)) return true;

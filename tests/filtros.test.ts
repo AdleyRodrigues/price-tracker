@@ -83,9 +83,22 @@ describe('filtros domain', () => {
       ).toBe(false);
       expect(
         tituloBloqueado(
-          'Laptop ASUS Gamer V16 V3607VH RTX 5050 Core 5 16GB RAM 512GB SSD 1920x1200'
+          'Notebook ASUS TUF Gaming F16, Intel Core i7 14650HX, RTX 5060, 16GB, 512GB SSD, KeepOS, 16" FHD'
         )
       ).toBe(false);
+    });
+
+    it('bloqueia modelos da linha ASUS V16 / V3607', () => {
+      expect(
+        tituloBloqueado(
+          'Laptop ASUS Gamer V16 V3607VH RTX 5050 Core 5 16GB RAM 512GB SSD 1920x1200'
+        )
+      ).toBe(true);
+      expect(
+        tituloBloqueado(
+          'Notebook Asus Gaming V16 V3607vh Nvidia Rtx 5050 Intel Core 5 16gb Ram 512gb Ssd Windows 11'
+        )
+      ).toBe(true);
     });
 
     it('bloqueia títulos vazios ou nulos', () => {

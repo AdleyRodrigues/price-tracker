@@ -8,7 +8,9 @@
     "track:notebooks": "ts-node src/tracker.ts",
     "track:mercado": "ts-node src/tracker-supermercado.ts",
     "track:celular": "ts-node src/tracker-celular.ts",
-    "test": "vitest run"
+    "test": "vitest run",
+    "track": "ts-node src/tracker-all.ts",
+    "track:all": "ts-node src/tracker-all.ts"
   },
   "keywords": [
     "price-tracker",

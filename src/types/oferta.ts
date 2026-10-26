@@ -1,4 +1,4 @@
-export interface Oferta {
+﻿export interface Oferta {
   loja: string;
   titulo: string;
   precoTotal: number;
@@ -10,6 +10,8 @@ export interface Oferta {
   cupomTag?: string;
   cupomDesconto?: number;
   precoComCupom?: number;
+  precoParceladoComCupom?: number;
+  detalhesParcelamentoComCupom?: string;
   sku?: string;
   ehCompact?: boolean;
   fonteId?: string;
@@ -26,6 +28,8 @@ export interface OfertaBruta {
   cupomTag?: string;
   cupomDesconto?: number;
   precoComCupom?: number;
+  precoParceladoComCupom?: number;
+  detalhesParcelamentoComCupom?: string;
   fonteId: string;
   sku?: string;
   ehCompact?: boolean;
@@ -58,6 +62,8 @@ export function toOferta(bruta: OfertaBruta): Oferta {
   if (bruta.cupomTag) oferta.cupomTag = bruta.cupomTag;
   if (bruta.cupomDesconto !== undefined) oferta.cupomDesconto = bruta.cupomDesconto;
   if (precoComCupom !== undefined) oferta.precoComCupom = precoComCupom;
+  if (bruta.precoParceladoComCupom !== undefined) oferta.precoParceladoComCupom = bruta.precoParceladoComCupom;
+  if (bruta.detalhesParcelamentoComCupom) oferta.detalhesParcelamentoComCupom = bruta.detalhesParcelamentoComCupom;
   if (bruta.sku) oferta.sku = bruta.sku;
   if (bruta.ehCompact) oferta.ehCompact = bruta.ehCompact;
   if (bruta.fonteId) oferta.fonteId = bruta.fonteId;
