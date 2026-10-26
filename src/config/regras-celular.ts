@@ -18,7 +18,28 @@ export const PROMOBIT_SEARCH_APIS_CELULAR = [
   'https://api.promobit.com.br/search?q=xiaomi+17t+pro',
   'https://api.promobit.com.br/search?q=xiaomi+15t+pro',
   'https://api.promobit.com.br/search?q=poco+x8+pro+max',
-  'https://api.promobit.com.br/search?q=poco+x8',
+  'https://api.promobit.com.br/search?q=x8+pro+max',
+  'https://api.promobit.com.br/search?q=xiaomi+mercado+livre',
+];
+
+export const ZOOM_BUSCA_URLS_CELULAR = [
+  'https://www.zoom.com.br/search?q=xiaomi+17t+pro',
+  'https://www.zoom.com.br/search?q=xiaomi+15t+pro',
+  'https://www.zoom.com.br/search?q=poco+x8+pro+max',
+  'https://www.zoom.com.br/search?q=x8+pro+max',
+];
+
+export const BUSCAPE_BUSCA_URLS_CELULAR = [
+  'https://www.buscape.com.br/search?q=xiaomi+17t+pro',
+  'https://www.buscape.com.br/search?q=xiaomi+15t+pro',
+  'https://www.buscape.com.br/search?q=poco+x8+pro+max',
+  'https://www.buscape.com.br/search?q=x8+pro+max',
+];
+
+export const KABUM_BUSCA_URLS_CELULAR = [
+  'https://www.kabum.com.br/busca/xiaomi-17t-pro',
+  'https://www.kabum.com.br/busca/xiaomi-15t-pro',
+  'https://www.kabum.com.br/busca/poco-x8-pro-max',
 ];
 
 export const AMAZON_BUSCA_URLS_CELULAR = [
@@ -36,7 +57,7 @@ export const MERCADO_LIVRE_BUSCA_URLS_CELULAR = [
 export const PRECO_MINIMO_CELULAR = 1800;
 export const THRESHOLD_ALERTA_CRITICO_CELULAR = 4200;
 export const FRETE_FALLBACK_CELULAR = 0;
-export const TAMANHO_PODIO_CELULAR = 5;
+export const TAMANHO_PODIO_CELULAR = Number(process.env.TAMANHO_PODIO_CELULAR) || 10;
 
 export const TITULO_BLOQUEADO_CELULAR =
   /capa|capinha|case|cover|pel[íi]cula|vidro\s*3d|vidro\s*temperado|cabo\s*usb|carregador|fonte\s*turbo|adaptador|fone|fone\s*de\s*ouvido|headphone|earbuds|smartwatch|pulseira|suporte|braçadeira|bateria\s*avulsa|placa\s*m[ãa]e|display|touch\s*screen|m[óo]dulo\s*frontal|peça|pe[çc]as|troca|conserto|usado|vitrine|recondicionado|r[ée]plica|fake/i;
@@ -50,7 +71,7 @@ export interface ItemCatalogoCelular {
   loja: string;
   produto: string;
   url: string;
-  parser: 'kabum' | 'shopee' | string;
+  parser: 'kabum' | 'shopee' | 'mercadolivre' | string;
   freteFallback?: number;
 }
 
@@ -77,6 +98,20 @@ export const CATALOGO_CELULAR: ItemCatalogoCelular[] = [
     freteFallback: 0,
   },
   {
+    loja: 'KaBuM!',
+    produto: 'Smartphone Xiaomi 15T Pro 5G 12GB RAM 512GB Câmera Leica 5x Dourado',
+    url: 'https://www.kabum.com.br/produto/706596/smartphone-xiaomi-15t-pro-5g-12gb-ram-512gb-camera-leica-5x-dourado',
+    parser: 'kabum',
+    freteFallback: 0,
+  },
+  {
+    loja: 'KaBuM!',
+    produto: 'Xiaomi Poco X8 Pro Max 512GB 12+12GB RAM 8.500mAh 5G Global Preto',
+    url: 'https://www.kabum.com.br/produto/709941/xiaomi-poco-x8-pro-max-512gb-12-12gb-ram-8-500mah-5g-global-preto',
+    parser: 'kabum',
+    freteFallback: 0,
+  },
+  {
     loja: 'Mercado Livre',
     produto: 'Xiaomi 17T Pro 1TB 24GB RAM 5G NFC Global',
     url: 'https://www.mercadolivre.com.br/xiaomi-17t-pro-1tb-1024gb-24gb-ram-1212gb-5g-nfc-global/up/MLBU4567809885?pdp_filters=item_id%3AMLB4993944013',
@@ -91,4 +126,3 @@ export const CATALOGO_CELULAR: ItemCatalogoCelular[] = [
     freteFallback: 0,
   },
 ];
-

@@ -6,17 +6,30 @@ import {
 } from '../config/regras-celular';
 import { Oferta, OfertaBruta } from '../types/oferta';
 
+export function modeloEstritoCelular(titulo: string): boolean {
+  if (!VALIDA_MODELO_CELULAR.test(titulo)) return false;
+  // Se for da linha X8, DEVE obrigatoriamente conter 'max'
+  if (/x8/i.test(titulo) && !/\bmax\b/i.test(titulo)) {
+    return false;
+  }
+  // Se for da linha 17T ou 15T, DEVE conter 'pro'
+  if (/(?:17t|15t)/i.test(titulo) && !/\bpro\b/i.test(titulo)) {
+    return false;
+  }
+  return true;
+}
+
 export function tituloBloqueadoCelular(titulo: string): boolean {
   if (TITULO_BLOQUEADO_CELULAR.test(titulo)) return true;
   if (!VALIDA_MARCA_XIAOMI.test(titulo)) return true;
-  if (!VALIDA_MODELO_CELULAR.test(titulo)) return true;
+  if (!modeloEstritoCelular(titulo)) return true;
   return false;
 }
 
 export function validarTituloCelular(titulo: string): boolean {
   return (
     VALIDA_MARCA_XIAOMI.test(titulo) &&
-    VALIDA_MODELO_CELULAR.test(titulo) &&
+    modeloEstritoCelular(titulo) &&
     !TITULO_BLOQUEADO_CELULAR.test(titulo)
   );
 }
