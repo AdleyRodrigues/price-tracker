@@ -49,3 +49,34 @@ export function aceitarOfertaCelular(o: Oferta): boolean {
   if (tituloBloqueadoCelular(o.titulo)) return false;
   return Boolean(o.url && o.url.trim().length > 0);
 }
+
+export type CategoriaCelular = 'poco_x8_pro_max' | 'xiaomi_linha_t';
+
+export function identificarCategoriaCelular(titulo: string): CategoriaCelular | null {
+  if (/(?:\bpoco\s*x8\s*pro\s*max\b|\bx8\s*pro\s*max\b)/i.test(titulo)) {
+    return 'poco_x8_pro_max';
+  }
+  if (/(?:\b17t\s*pro\b|\b15t\s*pro\b)/i.test(titulo)) {
+    return 'xiaomi_linha_t';
+  }
+  return null;
+}
+
+export function separarOfertasCelular(ofertas: Oferta[]): {
+  poco: Oferta[];
+  xiaomi: Oferta[];
+} {
+  const poco: Oferta[] = [];
+  const xiaomi: Oferta[] = [];
+
+  for (const o of ofertas) {
+    const cat = identificarCategoriaCelular(o.titulo);
+    if (cat === 'poco_x8_pro_max') {
+      poco.push(o);
+    } else if (cat === 'xiaomi_linha_t') {
+      xiaomi.push(o);
+    }
+  }
+
+  return { poco, xiaomi };
+}

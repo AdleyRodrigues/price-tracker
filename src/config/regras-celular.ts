@@ -57,7 +57,11 @@ export const MERCADO_LIVRE_BUSCA_URLS_CELULAR = [
 export const PRECO_MINIMO_CELULAR = 1800;
 export const THRESHOLD_ALERTA_CRITICO_CELULAR = 4200;
 export const FRETE_FALLBACK_CELULAR = 0;
-export const TAMANHO_PODIO_CELULAR = Number(process.env.TAMANHO_PODIO_CELULAR) || 10;
+export const TAMANHO_PODIO_CELULAR_POR_CATEGORIA =
+  Number(process.env.TAMANHO_PODIO_CELULAR_POR_CATEGORIA) ||
+  Number(process.env.TAMANHO_PODIO_CELULAR) ||
+  5;
+export const TAMANHO_PODIO_CELULAR = TAMANHO_PODIO_CELULAR_POR_CATEGORIA;
 
 export const TITULO_BLOQUEADO_CELULAR =
   /capa|capinha|case|cover|pel[íi]cula|vidro\s*3d|vidro\s*temperado|cabo\s*usb|carregador|fonte\s*turbo|adaptador|fone|fone\s*de\s*ouvido|headphone|earbuds|smartwatch|pulseira|suporte|braçadeira|bateria\s*avulsa|placa\s*m[ãa]e|display|touch\s*screen|m[óo]dulo\s*frontal|peça|pe[çc]as|troca|conserto|usado|vitrine|recondicionado|r[ée]plica|fake/i;

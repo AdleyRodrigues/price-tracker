@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
   aceitarOfertaCelular,
+  identificarCategoriaCelular,
   ofertaBrutaValidaCelular,
+  separarOfertasCelular,
   tituloBloqueadoCelular,
   validarTituloCelular,
 } from '../src/domain/filtros-celular';
@@ -92,6 +94,55 @@ describe('Xiaomi Celular Tracker', () => {
       };
 
       expect(aceitarOfertaCelular(oferta)).toBe(false);
+    });
+
+    it('identifica e separa categorias entre Poco X8 Pro Max e Xiaomi Linha T (15T Pro e 17T Pro)', () => {
+      expect(identificarCategoriaCelular('Smartphone Xiaomi 17T Pro 5G 512GB')).toBe('xiaomi_linha_t');
+      expect(identificarCategoriaCelular('Celular Xiaomi 15T Pro 256GB Leica')).toBe('xiaomi_linha_t');
+      expect(identificarCategoriaCelular('Smartphone Poco X8 Pro Max 512GB 12GB')).toBe('poco_x8_pro_max');
+      expect(identificarCategoriaCelular('Celular Xiaomi Poco X8 Pro Max 256GB')).toBe('poco_x8_pro_max');
+      expect(identificarCategoriaCelular('Produto Genérico')).toBeNull();
+
+      const listaMista: Oferta[] = [
+        {
+          loja: 'KaBuM!',
+          titulo: 'Smartphone Poco X8 Pro Max 512GB',
+          precoAVista: 2999,
+          frete: 0,
+          precoTotal: 2999,
+          url: 'https://kabum.com.br/poco1',
+        },
+        {
+          loja: 'Amazon',
+          titulo: 'Celular Xiaomi 15T Pro 512GB',
+          precoAVista: 4100,
+          frete: 0,
+          precoTotal: 4100,
+          url: 'https://amazon.com.br/15t',
+        },
+        {
+          loja: 'Mercado Livre',
+          titulo: 'Xiaomi 17T Pro 512GB',
+          precoAVista: 4300,
+          frete: 0,
+          precoTotal: 4300,
+          url: 'https://ml.com.br/17t',
+        },
+        {
+          loja: 'Promobit',
+          titulo: 'Poco X8 Pro Max 256GB',
+          precoAVista: 2800,
+          frete: 0,
+          precoTotal: 2800,
+          url: 'https://promobit.com.br/poco2',
+        },
+      ];
+
+      const separadas = separarOfertasCelular(listaMista);
+      expect(separadas.poco).toHaveLength(2);
+      expect(separadas.xiaomi).toHaveLength(2);
+      expect(separadas.poco.map((o) => o.loja)).toEqual(['KaBuM!', 'Promobit']);
+      expect(separadas.xiaomi.map((o) => o.loja)).toEqual(['Amazon', 'Mercado Livre']);
     });
   });
 
@@ -268,7 +319,7 @@ describe('Xiaomi Celular Tracker', () => {
   });
 
   describe('discord notification service', () => {
-    it('monta payload com pódio e branding Xiaomi', () => {
+    it('monta payload com pódio e branding Xiaomi quando apenas Xiaomi 17T Pro está presente', () => {
       const ofertas: Oferta[] = [
         {
           loja: 'Amazon',
@@ -282,10 +333,65 @@ describe('Xiaomi Celular Tracker', () => {
 
       const payload = montarPayloadDiscordCelular(ofertas, '123456789', '01001-000');
       expect(payload).not.toBeNull();
-      expect(payload?.embeds[0].title).toBe('📱 Monitor Xiaomi & Poco (17T Pro | 15T Pro | Poco X8 Pro Max)');
+      expect(payload?.embeds[0].title).toBe('📱 Top 1 — Xiaomi 15T Pro & 17T Pro');
       expect(payload?.embeds[0].color).toBe(0xff6900); // Laranja Xiaomi
       expect(payload?.embeds[0].fields[0].name).toContain('1º');
       expect(payload?.embeds[0].fields[0].name).toContain('Amazon');
+    });
+
+    it('separa em 2 top lists distintas na mesma mensagem (Top 5 Poco + Top 5 Xiaomi 15T/17T Pro)', () => {
+      const ofertasPoco: Oferta[] = [1, 2, 3, 4, 5, 6].map((n) => ({
+        loja: `Loja Poco ${n}`,
+        titulo: `Smartphone Poco X8 Pro Max 512GB 12GB RAM Var ${n}`,
+        precoAVista: 2800 + n * 50,
+        frete: 0,
+        precoTotal: 2800 + n * 50,
+        url: `https://poco.com.br/${n}`,
+      }));
+
+      const ofertasXiaomi: Oferta[] = [1, 2, 3, 4, 5, 6].map((n) => ({
+        loja: `Loja Xiaomi ${n}`,
+        titulo: n % 2 === 0
+          ? `Smartphone Xiaomi 15T Pro 512GB Leica Var ${n}`
+          : `Celular Xiaomi 17T Pro 512GB 12GB Var ${n}`,
+        precoAVista: 3800 + n * 100,
+        frete: 0,
+        precoTotal: 3800 + n * 100,
+        url: `https://xiaomi.com.br/${n}`,
+      }));
+
+      // Lista consolidada mista enviada para o serviço de payload
+      const listaMista = [...ofertasPoco, ...ofertasXiaomi];
+      const payload = montarPayloadDiscordCelular(listaMista, '123456789', '60440-240', 5);
+
+      expect(payload).not.toBeNull();
+      // Deve conter exatamente 2 embeds na MESMA mensagem do Discord!
+      expect(payload?.embeds).toHaveLength(2);
+
+      // Embed 1: Top 5 Poco X8 Pro Max
+      const embedPoco = payload?.embeds[0];
+      expect(embedPoco?.title).toBe('📱 Top 5 — Poco X8 Pro Max');
+      expect(embedPoco?.color).toBe(0xfac800); // Amarelo Poco
+      expect(embedPoco?.fields).toHaveLength(5);
+      expect(embedPoco?.fields[0].name).toContain('1º');
+      expect(embedPoco?.fields[0].name).toContain('Loja Poco 1');
+      expect(embedPoco?.fields[4].name).toContain('5º');
+      expect(embedPoco?.fields[4].name).toContain('Loja Poco 5');
+      expect(embedPoco?.description).toContain('Poco X8 Pro Max');
+
+      // Embed 2: Top 5 Xiaomi Linha T (15T Pro & 17T Pro)
+      const embedXiaomi = payload?.embeds[1];
+      expect(embedXiaomi?.title).toBe('📱 Top 5 — Xiaomi 15T Pro & 17T Pro');
+      expect(embedXiaomi?.color).toBe(0xff6900); // Laranja Xiaomi
+      expect(embedXiaomi?.fields).toHaveLength(5);
+      expect(embedXiaomi?.fields[0].name).toContain('1º');
+      expect(embedXiaomi?.fields[0].name).toContain('Loja Xiaomi 1');
+      expect(embedXiaomi?.fields[4].name).toContain('5º');
+      expect(embedXiaomi?.fields[4].name).toContain('Loja Xiaomi 5');
+      expect(embedXiaomi?.description).toContain('Xiaomi Linha T');
+
+      // Cabeçalho da mensagem consolidando os dois grupos
+      expect(payload?.content).toContain('Pódio de Ofertas (Top 5 Poco X8 Pro Max + Top 5 Xiaomi 15T/17T Pro)');
     });
 
     it('formata badges de hardware específicos de celular no item do Discord', () => {

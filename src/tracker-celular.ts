@@ -3,10 +3,11 @@ dotenv.config();
 
 import { exigirWebhookCelular } from './config/env';
 import { TAMANHO_PODIO_CELULAR } from './config/regras-celular';
+import { separarOfertasCelular } from './domain/filtros-celular';
 import { ordenarPorTotal } from './domain/ranking';
 import { coletarOfertasCelular } from './scrapers/celular';
 import { enviarParaDiscordCelular } from './services/discord-celular';
-import { validarTopOfertasComPlaywright } from './services/verificador-playwright';
+import { validarTopOfertasCelularComPlaywright } from './services/verificador-playwright';
 
 exigirWebhookCelular();
 
@@ -24,18 +25,35 @@ async function main(): Promise<void> {
     return;
   }
 
-  const metaTop = TAMANHO_PODIO_CELULAR;
-  console.log(`\n[Validador Frontend] Executando verificação de front com Playwright para compor Top ${metaTop} completo...`);
-  const limiteAnalise = Math.max(metaTop * 3, 30);
-  const ofertasValidadas = await validarTopOfertasComPlaywright(ordenadas, metaTop, limiteAnalise);
+  const { poco: candidatasPoco, xiaomi: candidatasXiaomi } = separarOfertasCelular(ordenadas);
+  console.log(
+    `[Tracker Celular] Ofertas qualificadas por categoria: ${candidatasPoco.length} Poco X8 Pro Max e ${candidatasXiaomi.length} Xiaomi 15T Pro / 17T Pro.`
+  );
 
-  if (ofertasValidadas.length === 0) {
+  const metaTopPorCategoria = TAMANHO_PODIO_CELULAR;
+  const limiteAnalisePorCategoria = Math.max(metaTopPorCategoria * 3, 15);
+
+  console.log(
+    `\n[Validador Frontend] Executando verificação de front com Playwright para compor Top ${metaTopPorCategoria} de cada categoria...`
+  );
+  const { poco: pocoValidadas, xiaomi: xiaomiValidadas } =
+    await validarTopOfertasCelularComPlaywright(
+      candidatasPoco,
+      candidatasXiaomi,
+      metaTopPorCategoria,
+      limiteAnalisePorCategoria
+    );
+
+  const totalValidadas = pocoValidadas.length + xiaomiValidadas.length;
+  if (totalValidadas === 0) {
     console.warn('Nenhuma oferta permaneceu válida após a validação do Playwright. Nada enviado ao Discord.');
     return;
   }
 
-  const finalOrdenadas = ordenarPorTotal(ofertasValidadas);
-  await enviarParaDiscordCelular(finalOrdenadas);
+  const finalPoco = ordenarPorTotal(pocoValidadas);
+  const finalXiaomi = ordenarPorTotal(xiaomiValidadas);
+
+  await enviarParaDiscordCelular({ poco: finalPoco, xiaomi: finalXiaomi });
 }
 
 main().catch((err) => {
