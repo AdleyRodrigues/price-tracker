@@ -52,13 +52,32 @@ export function aceitarOfertaCelular(o: Oferta): boolean {
 
 export type CategoriaCelular = 'poco_x8_pro_max' | 'xiaomi_linha_t';
 
-export function identificarCategoriaCelular(titulo: string): CategoriaCelular | null {
+/** Chave fina para histórico/dashboard (v1 celular). */
+export type ProdutoChaveCelular = 'poco_x8_pro_max' | 'xiaomi_17t_pro' | 'xiaomi_15t_pro';
+
+export const LABEL_PRODUTO_CELULAR: Record<ProdutoChaveCelular, string> = {
+  poco_x8_pro_max: 'Poco X8 Pro Max',
+  xiaomi_17t_pro: 'Xiaomi 17T Pro',
+  xiaomi_15t_pro: 'Xiaomi 15T Pro',
+};
+
+export function identificarProdutoChaveCelular(titulo: string): ProdutoChaveCelular | null {
   if (/(?:\bpoco\s*x8\s*pro\s*max\b|\bx8\s*pro\s*max\b)/i.test(titulo)) {
     return 'poco_x8_pro_max';
   }
-  if (/(?:\b17t\s*pro\b|\b15t\s*pro\b)/i.test(titulo)) {
-    return 'xiaomi_linha_t';
+  if (/\b17t\s*pro\b/i.test(titulo)) {
+    return 'xiaomi_17t_pro';
   }
+  if (/\b15t\s*pro\b/i.test(titulo)) {
+    return 'xiaomi_15t_pro';
+  }
+  return null;
+}
+
+export function identificarCategoriaCelular(titulo: string): CategoriaCelular | null {
+  const chave = identificarProdutoChaveCelular(titulo);
+  if (chave === 'poco_x8_pro_max') return 'poco_x8_pro_max';
+  if (chave === 'xiaomi_17t_pro' || chave === 'xiaomi_15t_pro') return 'xiaomi_linha_t';
   return null;
 }
 

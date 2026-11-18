@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   aceitarOfertaCelular,
   identificarCategoriaCelular,
+  identificarProdutoChaveCelular,
   ofertaBrutaValidaCelular,
   separarOfertasCelular,
   tituloBloqueadoCelular,
@@ -94,6 +95,15 @@ describe('Xiaomi Celular Tracker', () => {
       };
 
       expect(aceitarOfertaCelular(oferta)).toBe(false);
+    });
+
+    it('identifica chave fina de produto para o histórico', () => {
+      expect(identificarProdutoChaveCelular('Smartphone Xiaomi 17T Pro 5G 512GB')).toBe('xiaomi_17t_pro');
+      expect(identificarProdutoChaveCelular('Celular Xiaomi 15T Pro 256GB Leica')).toBe('xiaomi_15t_pro');
+      expect(identificarProdutoChaveCelular('Smartphone Poco X8 Pro Max 512GB 12GB')).toBe(
+        'poco_x8_pro_max'
+      );
+      expect(identificarProdutoChaveCelular('Produto Genérico')).toBeNull();
     });
 
     it('identifica e separa categorias entre Poco X8 Pro Max e Xiaomi Linha T (15T Pro e 17T Pro)', () => {

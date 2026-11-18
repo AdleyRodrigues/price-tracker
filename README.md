@@ -83,6 +83,7 @@ graph TD
   - **Exclusão:** Bloqueia automaticamente capas, películas, carregadores, cabos, fones/earbuds, smartwatches, peças/telas e réplicas.
   - **Piso de Corte:** R$ 1.800,00 (elimina acessórios).
 * **Alertas no Discord:** Canal `#celular` com pódio das melhores ofertas e destaque para desconto com cupom.
+* **Dashboard de histórico (v1):** cada coleta também grava snapshots no Turso (preço, loja, data, produto). O Discord **não muda** — o histórico é aditivo e falha em silêncio se o Turso não estiver configurado.
 
 ---
 
@@ -128,19 +129,56 @@ price-tracker/
 │   │   ├── discord.ts              # Despachante de embeds de notebooks (#notebooks-gamer)
 │   │   ├── discord-celular.ts      # Despachante de embeds de celulares (#celular)
 │   │   ├── discord-supermercado.ts # Despachante de embeds de supermercado (#supermercado_ofertas)
+│   │   ├── historico.ts            # Gravação soft-fail de snapshots no Turso
 │   │   ├── alertas-enviados.ts     # Cache local de ofertas já notificadas
 │   │   └── verificador-playwright.ts # Validador headless com bloqueio de recursos
 │   ├── tracker.ts                  # Orquestrador do monitor de notebooks
 │   ├── tracker-celular.ts          # Orquestrador do monitor de Xiaomi 17T Pro
 │   └── tracker-supermercado.ts     # Orquestrador do monitor de supermercado
+├── dashboard/                      # App React + Tailwind + shadcn (histórico)
+│   ├── server/                     # API Hono (leitura Turso)
+│   └── src/                        # UI Overview + Detalhe
+├── sql/
+│   └── 001_historico.sql           # Migration Turso (price_snapshots)
 ├── .github/workflows/
 │   ├── monitor.yml                 # CI/CD: Notebooks ASUS 16:10
 │   ├── celular.yml                 # CI/CD: Xiaomi 17T Pro (e Linha T)
 │   └── supermercado.yml            # CI/CD: Supermercado
-├── tests/                          # Suíte com 90 testes automatizados (Vitest)
+├── tests/                          # Suíte com testes automatizados (Vitest)
 ├── package.json
 └── tsconfig.json
 ```
+
+---
+
+## 📊 Dashboard de histórico (celular · v1)
+
+Camada **extra** ao Discord: web responsiva com overview, gráfico e tabela (preço × data × loja).
+
+### Setup Turso
+1. Crie um banco em [turso.tech](https://turso.tech) e copie `TURSO_DATABASE_URL` + `TURSO_AUTH_TOKEN`.
+2. Rode a migration:
+```bash
+turso db shell SEU_DB < sql/001_historico.sql
+```
+3. Coloque as variáveis no `.env` (veja `.env.example`) e nos secrets do GitHub (`TURSO_DATABASE_URL`, `TURSO_AUTH_TOKEN`) para o workflow `celular.yml`.
+
+### Rodar o dashboard (na raiz do repo)
+```bash
+pnpm install
+pnpm dev
+```
+Sobe **API + UI** juntos a partir da pasta raiz (`pnpm dash:dev` é alias do mesmo comando).
+- UI: http://localhost:5173 (também na rede local via `--host`)
+- API: http://127.0.0.1:8787 (`/api/produtos`, `/api/historico`, `/api/lojas`)
+
+Produção local (build + API servindo o static):
+```bash
+pnpm dash:build
+pnpm dash:start
+```
+
+**Roadmap v2:** mesmo schema/API/UI com módulo `notebooks` (hook em `tracker.ts` + filtro na UI).
 
 ---
 
@@ -174,6 +212,10 @@ CEP_DESTINO="01001-000"
 
 # (Opcional) ID do usuário no Discord para ser mencionado em super promoções
 USER_ID="123456789012345678"
+
+# Histórico de preços (Turso) — opcional no tracker; necessário para o dashboard
+TURSO_DATABASE_URL="libsql://SEU_DB.turso.io"
+TURSO_AUTH_TOKEN="SEU_TOKEN"
 ```
 
 ### 3. Executar os Rastreadores

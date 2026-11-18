@@ -46,3 +46,5 @@ jobs:
           DISCORD_CELULAR_WEBHOOK_URL: ${{ secrets.DISCORD_CELULAR_WEBHOOK_URL }}
           USER_ID: ${{ secrets.USER_ID }}
           CEP_DESTINO: ${{ secrets.CEP_DESTINO || vars.CEP_DESTINO }}
+          TURSO_DATABASE_URL: ${{ secrets.TURSO_DATABASE_URL }}
+          TURSO_AUTH_TOKEN: ${{ secrets.TURSO_AUTH_TOKEN }}

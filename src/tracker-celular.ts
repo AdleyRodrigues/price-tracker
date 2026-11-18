@@ -7,6 +7,7 @@ import { separarOfertasCelular } from './domain/filtros-celular';
 import { ordenarPorTotal } from './domain/ranking';
 import { coletarOfertasCelular } from './scrapers/celular';
 import { enviarParaDiscordCelular } from './services/discord-celular';
+import { salvarHistoricoCelular } from './services/historico';
 import { validarTopOfertasCelularComPlaywright } from './services/verificador-playwright';
 
 exigirWebhookCelular();
@@ -17,6 +18,9 @@ async function main(): Promise<void> {
   
   const coletadas = await coletarOfertasCelular();
   console.log(`[Tracker Celular] Varredura concluída: ${coletadas.length} ofertas qualificadas encontradas no total.`);
+
+  // Histórico é aditivo: falha silenciosa e não bloqueia o Discord.
+  await salvarHistoricoCelular(coletadas);
 
   const ordenadas = ordenarPorTotal(coletadas);
 

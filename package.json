@@ -10,7 +10,11 @@
     "track:celular": "ts-node src/tracker-celular.ts",
     "test": "vitest run",
     "track": "ts-node src/tracker-all.ts",
-    "track:all": "ts-node src/tracker-all.ts"
+    "track:all": "ts-node src/tracker-all.ts",
+    "dev": "pnpm --filter dashboard run dev",
+    "dash:dev": "pnpm run dev",
+    "dash:build": "pnpm --filter dashboard build",
+    "dash:start": "pnpm --filter dashboard start"
   },
   "keywords": [
     "price-tracker",
@@ -25,6 +29,7 @@
   "packageManager": "pnpm@9.15.9",
   "type": "commonjs",
   "dependencies": {
+    "@libsql/client": "^0.15.15",
     "axios": "^1.20.0",
     "cheerio": "^1.2.0",
     "dotenv": "^17.4.2",
