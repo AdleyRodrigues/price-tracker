@@ -1,0 +1,47 @@
+import { motion } from 'framer-motion';
+import { Clock3 } from 'lucide-react';
+import { formatDateTime, formatRelativeTime } from '@/lib/format';
+
+type Props = {
+  atualizadoEm: string | null | undefined;
+};
+
+export function DataFreshnessBanner({ atualizadoEm }: Props) {
+  if (!atualizadoEm) {
+    return (
+      <div className="market-panel flex items-center gap-3 border-warning/30 bg-warning/5 px-4 py-3 text-sm text-warning">
+        <Clock3 className="h-4 w-4 shrink-0" />
+        <p>Ainda sem dados reais no gráfico. Aguarde a próxima coleta do tracker.</p>
+      </div>
+    );
+  }
+
+  return (
+    <motion.div
+      className="market-panel flex flex-col gap-1 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4 }}
+    >
+      <div className="flex items-start gap-3">
+        <span className="mt-0.5 rounded-lg bg-primary/10 p-2 text-primary">
+          <Clock3 className="h-4 w-4" />
+        </span>
+        <div>
+          <p className="text-[0.7rem] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+            Última atualização com dados reais
+          </p>
+          <p className="font-display text-base font-semibold tracking-tight">
+            {formatDateTime(atualizadoEm)}
+            <span className="ml-2 text-sm font-medium text-muted-foreground">
+              ({formatRelativeTime(atualizadoEm)})
+            </span>
+          </p>
+        </div>
+      </div>
+      <p className="text-xs text-muted-foreground sm:text-right">
+        Timestamp do último snapshot gravado no histórico
+      </p>
+    </motion.div>
+  );
+}

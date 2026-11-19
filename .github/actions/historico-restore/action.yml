@@ -1,0 +1,29 @@
+name: Restore historico DB
+description: Baixa historico.db da branch historico-data e configura TURSO_DATABASE_URL=file:...
+
+runs:
+  using: composite
+  steps:
+    - name: Checkout historico-data
+      uses: actions/checkout@v4
+      continue-on-error: true
+      with:
+        ref: historico-data
+        path: .historico-store
+        sparse-checkout: |
+          historico.db
+        sparse-checkout-cone-mode: false
+
+    - name: Prepare SQLite local no runner
+      shell: bash
+      run: |
+        set -euo pipefail
+        mkdir -p data
+        if [ -f .historico-store/historico.db ]; then
+          cp .historico-store/historico.db data/historico.db
+          echo "Restored historico.db ($(wc -c < data/historico.db) bytes)"
+        else
+          echo "Nenhum historico.db remoto ainda — runner começa vazio"
+        fi
+        # libSQL file: URL absoluta no Linux
+        echo "TURSO_DATABASE_URL=file://${GITHUB_WORKSPACE}/data/historico.db" >> "$GITHUB_ENV"

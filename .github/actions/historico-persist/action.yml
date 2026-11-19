@@ -1,0 +1,44 @@
+name: Persist historico DB
+description: Publica data/historico.db na branch historico-data (fonte compartilhada Actions ↔ local)
+
+runs:
+  using: composite
+  steps:
+    - name: Push historico.db
+      shell: bash
+      env:
+        GITHUB_TOKEN: ${{ github.token }}
+      run: |
+        set -euo pipefail
+        DB_PATH="${GITHUB_WORKSPACE}/data/historico.db"
+        if [ ! -f "$DB_PATH" ]; then
+          echo "Sem data/historico.db — nada a publicar"
+          exit 0
+        fi
+
+        WORK=/tmp/historico-store-$$
+        rm -rf "$WORK"
+        mkdir -p "$WORK"
+        cd "$WORK"
+
+        git init -q
+        git remote add origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+        git config user.name "github-actions[bot]"
+        git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+        if git fetch origin historico-data:historico-data 2>/dev/null; then
+          git checkout -q historico-data
+        else
+          git checkout -q --orphan historico-data
+        fi
+
+        cp "$DB_PATH" historico.db
+        git add historico.db
+        if git diff --cached --quiet; then
+          echo "historico.db sem mudanças"
+          exit 0
+        fi
+
+        git commit -q -m "chore: update historico.db ($(date -u +%Y-%m-%dT%H:%MZ))"
+        git push -u origin HEAD:historico-data
+        echo "historico.db publicado em origin/historico-data"

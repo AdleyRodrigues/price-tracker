@@ -9,7 +9,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
-import { formatBRL } from '@/lib/format';
+import { formatBRL, formatDateTime, formatRelativeTime } from '@/lib/format';
 
 const PALETTE = ['#0f6b4c', '#e8913a', '#0369a1', '#be123c', '#0f766e', '#a16207', '#4f46e5', '#db2777'];
 
@@ -30,6 +30,8 @@ type Props = {
   titulo?: string;
   subtitulo?: string;
   eyebrow?: string;
+  /** Último snapshot real usado no gráfico. */
+  atualizadoEm?: string | null;
 };
 
 export function MarketPulseChart({
@@ -39,12 +41,17 @@ export function MarketPulseChart({
   titulo = 'Menor preço por coleta',
   subtitulo = 'Uma linha por modelo',
   eyebrow = 'Market pulse',
+  atualizadoEm = null,
 }: Props) {
   const series = produtos.map((chave, i) => ({
     chave,
     label: labels[chave] ?? chave,
     color: colorFor(chave, i),
   }));
+
+  const ultimoPonto =
+    atualizadoEm ??
+    (data.length ? String(data[data.length - 1]?.coletadoEm ?? '') || null : null);
 
   return (
     <motion.section
@@ -53,12 +60,19 @@ export function MarketPulseChart({
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1], delay: 0.15 }}
     >
-      <div className="mb-5 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+      <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="text-[0.7rem] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
             {eyebrow}
           </p>
           <h3 className="font-display text-xl font-bold tracking-tight">{titulo}</h3>
+          {ultimoPonto ? (
+            <p className="mt-1.5 text-xs text-muted-foreground">
+              Dados reais até{' '}
+              <span className="font-medium text-foreground">{formatDateTime(ultimoPonto)}</span>
+              <span className="text-muted-foreground"> · {formatRelativeTime(ultimoPonto)}</span>
+            </p>
+          ) : null}
         </div>
         <p className="text-sm text-muted-foreground">{subtitulo}</p>
       </div>

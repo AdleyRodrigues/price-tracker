@@ -6,8 +6,11 @@ on:
   workflow_dispatch:
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  group: historico-db-write
+  cancel-in-progress: false
+
+permissions:
+  contents: write
 
 jobs:
   track:
@@ -16,6 +19,9 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Restore historico DB
+        uses: ./.github/actions/historico-restore
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
@@ -46,5 +52,7 @@ jobs:
           WEBHOOK_URL: ${{ secrets.WEBHOOK_URL }}
           USER_ID: ${{ secrets.USER_ID }}
           CEP_DESTINO: ${{ secrets.CEP_DESTINO || vars.CEP_DESTINO }}
-          TURSO_DATABASE_URL: ${{ secrets.TURSO_DATABASE_URL }}
-          TURSO_AUTH_TOKEN: ${{ secrets.TURSO_AUTH_TOKEN }}
+
+      - name: Persist historico DB
+        if: success()
+        uses: ./.github/actions/historico-persist

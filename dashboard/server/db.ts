@@ -2,6 +2,7 @@ import { createClient, type Client } from '@libsql/client';
 import { config as loadEnv } from 'dotenv';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { syncHistoricoFromRemote } from './sync-historico';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -10,6 +11,17 @@ loadEnv({ path: path.resolve(__dirname, '../../.env') });
 loadEnv({ path: path.resolve(__dirname, '../.env') });
 
 let client: Client | null = null;
+
+export function resetDbClient(): void {
+  if (client) {
+    try {
+      client.close();
+    } catch {
+      // ignore
+    }
+    client = null;
+  }
+}
 
 export function getDb(): Client {
   if (client) return client;
@@ -40,4 +52,12 @@ export function isDbConfigured(): boolean {
   if (!url) return false;
   if (url.startsWith('file:')) return true;
   return Boolean(process.env.TURSO_AUTH_TOKEN?.trim());
+}
+
+/** Sincroniza SQLite local com a branch historico-data e reabre o client se baixou. */
+export async function ensureHistoricoSynced(force = false): Promise<void> {
+  const result = await syncHistoricoFromRemote({ force });
+  if (result.updated) {
+    resetDbClient();
+  }
 }

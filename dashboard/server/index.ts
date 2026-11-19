@@ -6,7 +6,8 @@ import { logger } from 'hono/logger';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { api } from './routes';
-import { isDbConfigured } from './db';
+import { ensureHistoricoSynced, isDbConfigured } from './db';
+import { getLastHistoricoSyncIso } from './sync-historico';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const isProd = process.env.NODE_ENV === 'production';
@@ -22,6 +23,24 @@ app.use(
   })
 );
 
+// Antes de qualquer leitura, tenta puxar o DB publicado pelos Actions.
+app.use('/api/*', async (c, next) => {
+  try {
+    await ensureHistoricoSynced(false);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.warn(`[historico-sync] falha: ${msg}`);
+  }
+  await next();
+});
+
+app.get('/api/sync-status', (c) =>
+  c.json({
+    lastSyncIso: getLastHistoricoSyncIso(),
+    dbConfigured: isDbConfigured(),
+  })
+);
+
 app.route('/api', api);
 
 if (isProd) {
@@ -30,8 +49,20 @@ if (isProd) {
   app.get('*', serveStatic({ root: distRel, path: 'index.html' }));
 }
 
-console.log(
-  `[dashboard-api] listening on http://127.0.0.1:${port} (db=${isDbConfigured() ? 'ok' : 'missing'})`
-);
+async function main() {
+  try {
+    await ensureHistoricoSynced(true);
+    console.log('[historico-sync] boot sync done');
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.warn(`[historico-sync] boot sync skip: ${msg}`);
+  }
 
-serve({ fetch: app.fetch, port });
+  console.log(
+    `[dashboard-api] listening on http://127.0.0.1:${port} (db=${isDbConfigured() ? 'ok' : 'missing'})`
+  );
+
+  serve({ fetch: app.fetch, port });
+}
+
+main();

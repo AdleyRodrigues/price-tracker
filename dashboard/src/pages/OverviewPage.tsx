@@ -7,11 +7,12 @@ import { MovementChart } from '@/components/charts/MovementChart';
 import { SnapshotsVolumeChart } from '@/components/charts/SnapshotsVolumeChart';
 import { StoreShareChart } from '@/components/charts/StoreShareChart';
 import { InsightRail } from '@/components/insights/InsightRail';
+import { DataFreshnessBanner } from '@/components/market/DataFreshnessBanner';
 import { KpiTheater } from '@/components/market/KpiTheater';
 import { ProductMarketCard } from '@/components/market/ProductMarketCard';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { formatDateTime } from '@/lib/format';
+import { formatDateTime, formatRelativeTime } from '@/lib/format';
 import { gpuFamiliaNotebook } from '@/lib/gpu';
 import { labelModulo, parseModulo, trackHint } from '@/lib/modulo';
 
@@ -81,8 +82,15 @@ export function OverviewPage() {
             preço, loja e momento.
           </p>
           {data?.kpis.ultimaColeta ? (
-            <p className="mt-2 text-xs text-muted-foreground">
-              Última coleta · {formatDateTime(data.kpis.ultimaColeta)}
+            <p className="mt-2 text-sm text-muted-foreground">
+              Gráfico com dados reais até{' '}
+              <span className="font-medium text-foreground">
+                {formatDateTime(data.kpis.ultimaColeta)}
+              </span>
+              <span className="text-muted-foreground">
+                {' '}
+                · {formatRelativeTime(data.kpis.ultimaColeta)}
+              </span>
             </p>
           ) : null}
         </motion.div>
@@ -129,6 +137,7 @@ export function OverviewPage() {
         </div>
       ) : (
         <>
+          <DataFreshnessBanner atualizadoEm={data.kpis.ultimaColeta} />
           <KpiTheater kpis={data.kpis} />
           {modulo === 'notebooks' ? (
             <div className="space-y-4">
@@ -140,6 +149,7 @@ export function OverviewPage() {
                   eyebrow="Market pulse · RTX 5050"
                   titulo="Menor preço — RTX 5050"
                   subtitulo={`${keys5050.length} modelo${keys5050.length === 1 ? '' : 's'} · uma linha por SKU`}
+                  atualizadoEm={data.kpis.ultimaColeta}
                 />
               ) : null}
               {keys5060.length > 0 ? (
@@ -150,6 +160,7 @@ export function OverviewPage() {
                   eyebrow="Market pulse · RTX 5060"
                   titulo="Menor preço — RTX 5060"
                   subtitulo={`${keys5060.length} modelo${keys5060.length === 1 ? '' : 's'} · uma linha por SKU`}
+                  atualizadoEm={data.kpis.ultimaColeta}
                 />
               ) : null}
               {keys5050.length === 0 && keys5060.length === 0 ? (
@@ -164,6 +175,7 @@ export function OverviewPage() {
               produtos={seriesKeys}
               labels={labelsByChave}
               subtitulo={`${seriesKeys.length} celulares · uma linha por modelo`}
+              atualizadoEm={data.kpis.ultimaColeta}
             />
           )}
 

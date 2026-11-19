@@ -5,3 +5,7 @@ dashboard/dist/
 data/
 *.log
 .playwright/
+.turso-bin/
+.turso-config/
+turso-auth-out.txt
+*.remote-meta.json
