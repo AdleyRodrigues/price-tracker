@@ -2,8 +2,9 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const DEFAULT_REMOTE =
-  'https://raw.githubusercontent.com/AdleyRodrigues/price-tracker/historico-data/historico.db';
+const REPO = 'AdleyRodrigues/price-tracker';
+const BRANCH = 'historico-data';
+const FILE = 'historico.db';
 
 const MIN_INTERVAL_MS = 60_000;
 
@@ -13,7 +14,6 @@ let lastSuccessIso: string | null = null;
 function localPathFromTursoUrl(url: string): string | null {
   if (!url.startsWith('file:')) return null;
   const raw = url.slice('file:'.length);
-  // file:///C:/... ou file:C:/... ou file:/home/...
   if (raw.startsWith('///') || raw.startsWith('//')) {
     try {
       return fileURLToPath(url.includes('file://') ? url : `file://${raw}`);
@@ -28,9 +28,28 @@ export function getLastHistoricoSyncIso(): string | null {
   return lastSuccessIso;
 }
 
+async function latestCommitSha(): Promise<{ sha: string; date?: string } | null> {
+  const api =
+    process.env.HISTORICO_REMOTE_COMMIT_API?.trim() ||
+    `https://api.github.com/repos/${REPO}/commits/${BRANCH}`;
+  const res = await fetch(api, {
+    headers: {
+      Accept: 'application/vnd.github+json',
+      'User-Agent': 'lg-price-tracker-dashboard',
+    },
+  });
+  if (!res.ok) return null;
+  const json = (await res.json()) as {
+    sha?: string;
+    commit?: { committer?: { date?: string } };
+  };
+  if (!json.sha) return null;
+  return { sha: json.sha, date: json.commit?.committer?.date };
+}
+
 /**
  * Baixa historico.db da branch historico-data (Actions) para o SQLite local.
- * No-op se TURSO_DATABASE_URL não for file: ou se o remoto não mudou.
+ * Usa o SHA do commit (não o raw da branch) para evitar cache stale do CDN.
  */
 export async function syncHistoricoFromRemote(opts?: {
   force?: boolean;
@@ -49,31 +68,17 @@ export async function syncHistoricoFromRemote(opts?: {
   const localPath = localPathFromTursoUrl(dbUrl);
   if (!localPath) return { updated: false, reason: 'path-invalido' };
 
-  const remoteUrl = (
-    process.env.HISTORICO_REMOTE_DB_URL?.trim() || DEFAULT_REMOTE
-  ).replace(/\s+/g, '');
-
-  let head: Response;
+  let commit: { sha: string; date?: string } | null = null;
   try {
-    head = await fetch(remoteUrl, { method: 'HEAD', redirect: 'follow' });
+    commit = await latestCommitSha();
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    return { updated: false, reason: `head-falhou:${msg}` };
+    return { updated: false, reason: `commit-api:${msg}` };
   }
-
-  if (!head.ok) {
-    return { updated: false, reason: `remoto-http-${head.status}` };
-  }
-
-  const remoteLen = Number(head.headers.get('content-length') || 0);
-  const remoteEtag = head.headers.get('etag');
-  const remoteLastMod = head.headers.get('last-modified');
-  const remoteAt = remoteLastMod
-    ? new Date(remoteLastMod).toISOString()
-    : undefined;
+  if (!commit) return { updated: false, reason: 'commit-nao-encontrado' };
 
   const metaPath = `${localPath}.remote-meta.json`;
-  let prev: { etag?: string; lastModified?: string; size?: number } = {};
+  let prev: { sha?: string } = {};
   if (fs.existsSync(metaPath)) {
     try {
       prev = JSON.parse(fs.readFileSync(metaPath, 'utf8')) as typeof prev;
@@ -82,22 +87,21 @@ export async function syncHistoricoFromRemote(opts?: {
     }
   }
 
-  const localExists = fs.existsSync(localPath);
-  const localSize = localExists ? fs.statSync(localPath).size : 0;
-  const unchanged =
-    localExists &&
-    ((remoteEtag && prev.etag === remoteEtag) ||
-      (remoteLastMod && prev.lastModified === remoteLastMod) ||
-      (remoteLen > 0 && remoteLen === localSize && prev.size === remoteLen));
-
-  if (unchanged && !opts?.force) {
-    lastSuccessIso = remoteAt ?? lastSuccessIso;
-    return { updated: false, reason: 'ja-atualizado', remoteAt };
+  if (!opts?.force && prev.sha === commit.sha && fs.existsSync(localPath)) {
+    lastSuccessIso = commit.date ?? lastSuccessIso;
+    return { updated: false, reason: 'ja-atualizado', remoteAt: commit.date };
   }
+
+  const remoteUrl =
+    process.env.HISTORICO_REMOTE_DB_URL?.trim() ||
+    `https://raw.githubusercontent.com/${REPO}/${commit.sha}/${FILE}`;
 
   let body: Response;
   try {
-    body = await fetch(remoteUrl, { redirect: 'follow' });
+    body = await fetch(remoteUrl, {
+      redirect: 'follow',
+      headers: { 'User-Agent': 'lg-price-tracker-dashboard', 'Cache-Control': 'no-cache' },
+    });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     return { updated: false, reason: `get-falhou:${msg}` };
@@ -107,8 +111,9 @@ export async function syncHistoricoFromRemote(opts?: {
   }
 
   const buf = Buffer.from(await body.arrayBuffer());
-  if (buf.byteLength < 100) {
-    return { updated: false, reason: 'arquivo-remoto-suspeito' };
+  // SQLite header: "SQLite format 3\0"
+  if (buf.byteLength < 100 || buf.subarray(0, 16).toString('utf8') !== 'SQLite format 3\u0000') {
+    return { updated: false, reason: 'arquivo-remoto-invalido' };
   }
 
   fs.mkdirSync(path.dirname(localPath), { recursive: true });
@@ -119,10 +124,11 @@ export async function syncHistoricoFromRemote(opts?: {
     metaPath,
     JSON.stringify(
       {
-        etag: remoteEtag,
-        lastModified: remoteLastMod,
-        size: buf.byteLength,
+        sha: commit.sha,
         syncedAt: new Date().toISOString(),
+        commitDate: commit.date,
+        size: buf.byteLength,
+        source: remoteUrl,
       },
       null,
       2
@@ -130,9 +136,9 @@ export async function syncHistoricoFromRemote(opts?: {
     'utf8'
   );
 
-  lastSuccessIso = remoteAt ?? new Date().toISOString();
+  lastSuccessIso = commit.date ?? new Date().toISOString();
   console.log(
-    `[historico-sync] Atualizado ${localPath} (${buf.byteLength} bytes) de ${remoteUrl}`
+    `[historico-sync] Atualizado ${localPath} (${buf.byteLength} bytes) @ ${commit.sha.slice(0, 7)}`
   );
   return { updated: true, reason: 'baixado', remoteAt: lastSuccessIso };
 }
