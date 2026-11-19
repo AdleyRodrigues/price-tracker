@@ -4,6 +4,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 
 export type RangeKey = '7' | '30' | '90';
+export type ChartMode = 'minimo' | 'por-loja' | 'candles';
 
 type Props = {
   lojas: string[];
@@ -11,8 +12,8 @@ type Props = {
   onLojaChange: (value: string) => void;
   range: RangeKey;
   onRangeChange: (value: RangeKey) => void;
-  chartMode: 'minimo' | 'por-loja';
-  onChartModeChange: (value: 'minimo' | 'por-loja') => void;
+  chartMode: ChartMode;
+  onChartModeChange: (value: ChartMode) => void;
 };
 
 function FiltersFields(props: Props) {
@@ -21,7 +22,7 @@ function FiltersFields(props: Props) {
       <label className="grid gap-1.5 text-sm">
         <span className="text-muted-foreground">Intervalo</span>
         <Select value={props.range} onValueChange={(v) => props.onRangeChange(v as RangeKey)}>
-          <SelectTrigger className="w-full sm:w-40">
+          <SelectTrigger className="w-full sm:w-36">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -53,14 +54,15 @@ function FiltersFields(props: Props) {
         <span className="text-muted-foreground">Gráfico</span>
         <Select
           value={props.chartMode}
-          onValueChange={(v) => props.onChartModeChange(v as 'minimo' | 'por-loja')}
+          onValueChange={(v) => props.onChartModeChange(v as ChartMode)}
         >
-          <SelectTrigger className="w-full sm:w-48">
+          <SelectTrigger className="w-full sm:w-44">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="minimo">Menor preço</SelectItem>
             <SelectItem value="por-loja">Por loja</SelectItem>
+            <SelectItem value="candles">Faixa diária</SelectItem>
           </SelectContent>
         </Select>
       </label>
@@ -86,7 +88,9 @@ export function FiltersBar(props: Props) {
             <SheetHeader>
               <SheetTitle>Filtros</SheetTitle>
             </SheetHeader>
-            <FiltersFields {...props} />
+            <div className="mt-4">
+              <FiltersFields {...props} />
+            </div>
           </SheetContent>
         </Sheet>
       </div>

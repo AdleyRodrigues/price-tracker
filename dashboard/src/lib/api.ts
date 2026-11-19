@@ -25,6 +25,27 @@ export type SnapshotRow = {
   coletadoEm: string;
 };
 
+export type ProductInsights = {
+  min: number | null;
+  max: number | null;
+  media: number | null;
+  mediana: number | null;
+  amplitude: number | null;
+  economiaVsPico: number | null;
+  diasDesdeMinimo: number | null;
+  melhorLoja: string | null;
+  volatilidade: number | null;
+  variacaoPeriodo: number | null;
+  candles: Array<{ dia: string; min: number; max: number }>;
+  storeBattle: Array<{
+    loja: string;
+    precoMedio: number;
+    menorPreco: number;
+    vezesMinimo: number;
+    shareMinimos: number;
+  }>;
+};
+
 export type HistoricoResponse = {
   produto: string;
   label: string;
@@ -32,6 +53,60 @@ export type HistoricoResponse = {
   snapshots: SnapshotRow[];
   serie: Array<{ coletadoEm: string; preco: number; loja: string }>;
   seriePorLoja: Array<{ loja: string; pontos: Array<{ coletadoEm: string; preco: number }> }>;
+  insights?: ProductInsights;
+  warning?: string;
+};
+
+export type OverviewInsight = {
+  id: string;
+  tone: 'positive' | 'warning' | 'neutral' | 'accent';
+  title: string;
+  detail: string;
+};
+
+export type OverviewInsightsResponse = {
+  kpis: {
+    menorPrecoMercado: number | null;
+    produtoMenorPreco: string | null;
+    lojaMenorPreco: string | null;
+    maiorQueda7d: number | null;
+    produtoMaiorQueda: string | null;
+    volatilidadeMedia: number | null;
+    totalSnapshots: number;
+    ultimaColeta: string | null;
+  };
+  insights: OverviewInsight[];
+  seriesKeys: string[];
+  seriesComparativo: Array<{
+    coletadoEm: string;
+    label: string;
+    [produtoChave: string]: string | number | null;
+  }>;
+  movimento: Array<{
+    produtoChave: string;
+    label: string;
+    variacao7d: number | null;
+    volatilidade: number | null;
+    totalSnapshots: number;
+    menorPreco: number | null;
+  }>;
+  lojasRanking: Array<{
+    loja: string;
+    vezesMinimo: number;
+    shareMinimos: number;
+    menorPreco: number;
+  }>;
+  produtos: Array<{
+    produtoChave: string;
+    label: string;
+    menorPreco: number | null;
+    lojaMenorPreco: string | null;
+    coletadoEm: string | null;
+    variacao7d: number | null;
+    totalSnapshots: number;
+    sparkline: Array<{ coletadoEm: string; preco: number }>;
+    volatilidade: number | null;
+  }>;
   warning?: string;
 };
 
@@ -47,6 +122,12 @@ async function getJson<T>(path: string): Promise<T> {
 export function fetchProdutos(modulo = 'celular') {
   return getJson<{ produtos: ProdutoResumo[]; warning?: string }>(
     `/api/produtos?modulo=${encodeURIComponent(modulo)}`
+  );
+}
+
+export function fetchInsights(modulo = 'celular', dias = 90) {
+  return getJson<OverviewInsightsResponse>(
+    `/api/insights?modulo=${encodeURIComponent(modulo)}&dias=${dias}`
   );
 }
 
@@ -77,4 +158,9 @@ export function daysAgoIso(days: number): string {
   const d = new Date();
   d.setUTCDate(d.getUTCDate() - days);
   return d.toISOString();
+}
+
+export function isRealUrl(url: string | null | undefined): boolean {
+  if (!url) return false;
+  return url.startsWith('http://') || url.startsWith('https://');
 }

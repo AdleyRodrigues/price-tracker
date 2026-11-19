@@ -1,30 +1,33 @@
 import { ExternalLink } from 'lucide-react';
 import type { SnapshotRow } from '@/lib/api';
+import { isRealUrl } from '@/lib/api';
 import { formatBRL, formatDateTime } from '@/lib/format';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { cn } from '@/lib/utils';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 type Props = {
   snapshots: SnapshotRow[];
+  minPreco?: number | null;
 };
 
-export function HistoryTable({ snapshots }: Props) {
+export function HistoryTable({ snapshots, minPreco }: Props) {
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Registros</CardTitle>
-        <CardDescription>
-          Preço, data e loja de cada snapshot ({snapshots.length} no filtro)
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="px-0 sm:px-5">
-        {snapshots.length === 0 ? (
-          <p className="px-5 text-sm text-muted-foreground sm:px-0">
-            Nenhum snapshot neste filtro.
-          </p>
-        ) : (
+    <section className="market-panel overflow-hidden">
+      <div className="border-b border-border/70 px-5 py-4">
+        <p className="text-[0.7rem] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+          Ledger
+        </p>
+        <h3 className="font-display text-lg font-bold tracking-tight">
+          Registros · {snapshots.length}
+        </h3>
+      </div>
+
+      {snapshots.length === 0 ? (
+        <p className="p-5 text-sm text-muted-foreground">Nenhum snapshot neste filtro.</p>
+      ) : (
+        <div className="max-h-[28rem] overflow-auto">
           <Table>
-            <TableHeader>
+            <TableHeader className="sticky top-0 z-10 bg-card/95 backdrop-blur">
               <TableRow>
                 <TableHead>Data</TableHead>
                 <TableHead>Loja</TableHead>
@@ -35,36 +38,61 @@ export function HistoryTable({ snapshots }: Props) {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {snapshots.map((s) => (
-                <TableRow key={s.id}>
-                  <TableCell className="whitespace-nowrap text-xs sm:text-sm">
-                    {formatDateTime(s.coletadoEm)}
-                  </TableCell>
-                  <TableCell className="font-medium">{s.loja}</TableCell>
-                  <TableCell className="text-right tabular-price">{formatBRL(s.precoAvista)}</TableCell>
-                  <TableCell className="hidden text-right tabular-price sm:table-cell">
-                    {formatBRL(s.precoTotal)}
-                  </TableCell>
-                  <TableCell className="hidden max-w-[18rem] truncate md:table-cell" title={s.titulo}>
-                    {s.titulo}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <a
-                      href={s.url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="inline-flex items-center gap-1 text-primary hover:underline"
+              {snapshots.map((s, i) => {
+                const isMin = minPreco != null && s.precoAvista === minPreco;
+                return (
+                  <TableRow
+                    key={s.id}
+                    className={cn(
+                      i % 2 === 1 && 'bg-muted/30',
+                      isMin && 'bg-primary/8 hover:bg-primary/12'
+                    )}
+                  >
+                    <TableCell className="whitespace-nowrap text-xs sm:text-sm">
+                      {formatDateTime(s.coletadoEm)}
+                    </TableCell>
+                    <TableCell className="font-medium">
+                      {s.loja}
+                      {isMin ? (
+                        <span className="ml-2 rounded bg-primary/15 px-1.5 py-0.5 text-[0.65rem] font-semibold text-primary">
+                          MIN
+                        </span>
+                      ) : null}
+                    </TableCell>
+                    <TableCell className="text-right tabular-price font-medium">
+                      {formatBRL(s.precoAvista)}
+                    </TableCell>
+                    <TableCell className="hidden text-right tabular-price sm:table-cell">
+                      {formatBRL(s.precoTotal)}
+                    </TableCell>
+                    <TableCell
+                      className="hidden max-w-[16rem] truncate md:table-cell"
+                      title={s.titulo}
                     >
-                      <ExternalLink className="h-3.5 w-3.5" />
-                      <span className="sr-only sm:not-sr-only sm:text-xs">Abrir</span>
-                    </a>
-                  </TableCell>
-                </TableRow>
-              ))}
+                      {s.titulo}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {isRealUrl(s.url) ? (
+                        <a
+                          href={s.url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-1 text-primary hover:underline"
+                        >
+                          <ExternalLink className="h-3.5 w-3.5" />
+                          <span className="sr-only sm:not-sr-only sm:text-xs">Abrir</span>
+                        </a>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">—</span>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
             </TableBody>
           </Table>
-        )}
-      </CardContent>
-    </Card>
+        </div>
+      )}
+    </section>
   );
 }

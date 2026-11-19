@@ -15,11 +15,19 @@ export function getDb(): Client {
   if (client) return client;
 
   const url = process.env.TURSO_DATABASE_URL?.trim();
-  const authToken = process.env.TURSO_AUTH_TOKEN?.trim();
+  if (!url) {
+    throw new Error('TURSO_DATABASE_URL é obrigatório para a API do dashboard.');
+  }
 
-  if (!url || !authToken) {
+  if (url.startsWith('file:')) {
+    client = createClient({ url });
+    return client;
+  }
+
+  const authToken = process.env.TURSO_AUTH_TOKEN?.trim();
+  if (!authToken) {
     throw new Error(
-      'TURSO_DATABASE_URL e TURSO_AUTH_TOKEN são obrigatórios para a API do dashboard.'
+      'TURSO_AUTH_TOKEN é obrigatório para bancos Turso remotos (libsql://...).'
     );
   }
 
@@ -28,5 +36,8 @@ export function getDb(): Client {
 }
 
 export function isDbConfigured(): boolean {
-  return Boolean(process.env.TURSO_DATABASE_URL?.trim() && process.env.TURSO_AUTH_TOKEN?.trim());
+  const url = process.env.TURSO_DATABASE_URL?.trim();
+  if (!url) return false;
+  if (url.startsWith('file:')) return true;
+  return Boolean(process.env.TURSO_AUTH_TOKEN?.trim());
 }

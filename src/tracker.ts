@@ -4,12 +4,17 @@ dotenv.config();
 import './config/env';
 import { coletarOfertas } from './services/collector';
 import { enviarParaDiscord } from './services/discord';
+import { salvarHistoricoNotebooks } from './services/historico';
 import { ordenarPorTotal } from './domain/ranking';
 import { validarTopOfertasComPlaywright } from './services/verificador-playwright';
 import { TAMANHO_PODIO } from './config/regras';
 
 async function main(): Promise<void> {
   const coletadas = await coletarOfertas();
+
+  // Histórico aditivo: falha silenciosa e não bloqueia o Discord.
+  await salvarHistoricoNotebooks(coletadas);
+
   const ordenadas = ordenarPorTotal(coletadas);
 
   if (ordenadas.length === 0) {

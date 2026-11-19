@@ -155,13 +155,16 @@ price-tracker/
 
 Camada **extra** ao Discord: web responsiva com overview, gráfico e tabela (preço × data × loja).
 
-### Setup Turso
+### Setup do banco (libSQL)
+**Dev local:** o `.env` pode apontar para um SQLite em disco (`file:.../data/historico.db`) — não precisa de `TURSO_AUTH_TOKEN`.
+
+**Produção / multi-device (Turso):**
 1. Crie um banco em [turso.tech](https://turso.tech) e copie `TURSO_DATABASE_URL` + `TURSO_AUTH_TOKEN`.
 2. Rode a migration:
 ```bash
 turso db shell SEU_DB < sql/001_historico.sql
 ```
-3. Coloque as variáveis no `.env` (veja `.env.example`) e nos secrets do GitHub (`TURSO_DATABASE_URL`, `TURSO_AUTH_TOKEN`) para o workflow `celular.yml`.
+3. Coloque as variáveis no `.env` e nos secrets do GitHub (`TURSO_DATABASE_URL`, `TURSO_AUTH_TOKEN`) para o workflow `celular.yml`.
 
 ### Rodar o dashboard (na raiz do repo)
 ```bash
@@ -178,7 +181,7 @@ pnpm dash:build
 pnpm dash:start
 ```
 
-**Roadmap v2:** mesmo schema/API/UI com módulo `notebooks` (hook em `tracker.ts` + filtro na UI).
+**Módulos no dash:** toggle **Celular | Notebooks** (`?modulo=notebooks`). Notebooks gravam 1 linha por SKU ASUS (ex.: `FX608JHI`) via `pnpm track:notebooks` — Discord continua igual.
 
 ---
 

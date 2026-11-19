@@ -1,6 +1,54 @@
 import { Hono } from 'hono';
+import { extrairHardware } from '../../src/domain/hardware';
 import { getDb, isDbConfigured } from './db';
+import { buildOverviewInsights, buildProductInsights } from './insights';
 import { labelProduto } from './labels';
+
+/**
+ * Escolhe um título representativo do SKU:
+ * 1) assinatura CPU+RAM+GPU mais frequente
+ * 2) desempate pelo título com mais campos preenchidos
+ */
+async function tituloMaisRico(modulo: string, produtoChave: string): Promise<string | undefined> {
+  const db = getDb();
+  const res = await db.execute({
+    sql: `SELECT titulo FROM price_snapshots
+          WHERE modulo = ? AND produto_chave = ?
+          ORDER BY coletado_em DESC
+          LIMIT 120`,
+    args: [modulo, produtoChave],
+  });
+
+  const bySig = new Map<string, { count: number; titulo: string; richness: number }>();
+
+  for (const row of res.rows) {
+    const titulo = String(row.titulo ?? '').trim();
+    if (!titulo) continue;
+    const hw = extrairHardware(titulo);
+    if (!hw.cpu && !hw.ram && !hw.gpu) continue;
+    const sig = [hw.cpu ?? '', hw.ram ?? '', hw.gpu ?? ''].join('|');
+    const richness = (hw.cpu ? 1 : 0) + (hw.ram ? 1 : 0) + (hw.gpu ? 1 : 0) + (hw.ssd ? 1 : 0);
+    const cur = bySig.get(sig);
+    if (!cur) {
+      bySig.set(sig, { count: 1, titulo, richness });
+    } else {
+      cur.count += 1;
+      if (richness > cur.richness) {
+        cur.titulo = titulo;
+        cur.richness = richness;
+      }
+    }
+  }
+
+  if (bySig.size === 0) {
+    const first = res.rows[0] ? String(res.rows[0].titulo ?? '').trim() : '';
+    return first || undefined;
+  }
+
+  return [...bySig.values()].sort(
+    (a, b) => b.count - a.count || b.richness - a.richness
+  )[0]?.titulo;
+}
 
 export type ProdutoResumo = {
   produtoChave: string;
@@ -132,6 +180,8 @@ api.get('/produtos', async (c) => {
       }
     }
 
+    const tituloHint = await tituloMaisRico(modulo, produtoChave);
+
     const base24h = await menorPrecoAte(modulo, produtoChave, isoDaysAgo(1));
     const base7d = await menorPrecoAte(modulo, produtoChave, isoDaysAgo(7));
 
@@ -146,7 +196,7 @@ api.get('/produtos', async (c) => {
 
     produtos.push({
       produtoChave,
-      label: labelProduto(produtoChave),
+      label: labelProduto(produtoChave, tituloHint),
       modulo,
       menorPreco,
       lojaMenorPreco,
@@ -245,14 +295,167 @@ api.get('/historico', async (c) => {
     pontos: pontos.sort((a, b) => a.coletadoEm.localeCompare(b.coletadoEm)),
   }));
 
+  const insights = buildProductInsights(
+    serie,
+    snapshots.map((s) => ({
+      loja: s.loja,
+      precoAvista: s.precoAvista,
+      coletadoEm: s.coletadoEm,
+    }))
+  );
+
+  const tituloHint =
+    (await tituloMaisRico(modulo, produto)) ??
+    snapshots.at(-1)?.titulo ??
+    snapshots[0]?.titulo;
+
   return c.json({
     produto,
-    label: labelProduto(produto),
+    label: labelProduto(produto, tituloHint),
     modulo,
     snapshots: [...snapshots].reverse(),
     serie,
     seriePorLoja,
+    insights,
   });
+});
+
+api.get('/insights', async (c) => {
+  if (!isDbConfigured()) {
+    return c.json({
+      kpis: {
+        menorPrecoMercado: null,
+        produtoMenorPreco: null,
+        lojaMenorPreco: null,
+        maiorQueda7d: null,
+        produtoMaiorQueda: null,
+        volatilidadeMedia: null,
+        totalSnapshots: 0,
+        ultimaColeta: null,
+      },
+      insights: [],
+      seriesKeys: [],
+      seriesComparativo: [],
+      movimento: [],
+      lojasRanking: [],
+      produtos: [],
+      warning: 'Turso não configurado',
+    });
+  }
+
+  const modulo = parseModulo(c.req.query('modulo'));
+  const dias = Number(c.req.query('dias') || 90);
+  const de = isoDaysAgo(Number.isFinite(dias) && dias > 0 ? dias : 90);
+  const db = getDb();
+
+  const produtosRes = await db.execute({
+    sql: `SELECT produto_chave, COUNT(*) AS total
+          FROM price_snapshots
+          WHERE modulo = ?
+          GROUP BY produto_chave
+          ORDER BY produto_chave ASC`,
+    args: [modulo],
+  });
+
+  const totalRes = await db.execute({
+    sql: `SELECT COUNT(*) AS n, MAX(coletado_em) AS ultima
+          FROM price_snapshots WHERE modulo = ?`,
+    args: [modulo],
+  });
+  const totalSnapshots = Number(totalRes.rows[0]?.n ?? 0);
+  const ultimaColeta = totalRes.rows[0]?.ultima ? String(totalRes.rows[0].ultima) : null;
+
+  const produtos: Array<{
+    produtoChave: string;
+    tituloHint?: string;
+    menorPreco: number | null;
+    lojaMenorPreco: string | null;
+    coletadoEm: string | null;
+    variacao7d: number | null;
+    totalSnapshots: number;
+    sparkline: Array<{ coletadoEm: string; preco: number }>;
+  }> = [];
+
+  for (const row of produtosRes.rows) {
+    const produtoChave = String(row.produto_chave);
+    const total = Number(row.total ?? 0);
+
+    const ultima = await db.execute({
+      sql: `SELECT MAX(coletado_em) AS max_em FROM price_snapshots
+            WHERE modulo = ? AND produto_chave = ?`,
+      args: [modulo, produtoChave],
+    });
+    const maxEm = ultima.rows[0]?.max_em ? String(ultima.rows[0].max_em) : null;
+
+    let menorPreco: number | null = null;
+    let lojaMenorPreco: string | null = null;
+    let coletadoEm: string | null = maxEm;
+
+    if (maxEm) {
+      const best = await db.execute({
+        sql: `SELECT preco_avista, loja, coletado_em FROM price_snapshots
+              WHERE modulo = ? AND produto_chave = ? AND coletado_em = ?
+              ORDER BY preco_avista ASC LIMIT 1`,
+        args: [modulo, produtoChave, maxEm],
+      });
+      if (best.rows[0]) {
+        menorPreco = Number(best.rows[0].preco_avista);
+        lojaMenorPreco = String(best.rows[0].loja);
+        coletadoEm = String(best.rows[0].coletado_em);
+      }
+    }
+
+    const tituloHint = await tituloMaisRico(modulo, produtoChave);
+
+    const base7d = await menorPrecoAte(modulo, produtoChave, isoDaysAgo(7));
+    const variacao7d =
+      menorPreco != null && base7d != null && base7d > 0
+        ? ((menorPreco - base7d) / base7d) * 100
+        : null;
+
+    const serieRes = await db.execute({
+      sql: `SELECT coletado_em, MIN(preco_avista) AS min_preco
+            FROM price_snapshots
+            WHERE modulo = ? AND produto_chave = ? AND coletado_em >= ?
+            GROUP BY coletado_em
+            ORDER BY coletado_em ASC`,
+      args: [modulo, produtoChave, de],
+    });
+    const sparkline = serieRes.rows.map((r) => ({
+      coletadoEm: String(r.coletado_em),
+      preco: Number(r.min_preco),
+    }));
+
+    produtos.push({
+      produtoChave,
+      tituloHint,
+      menorPreco,
+      lojaMenorPreco,
+      coletadoEm,
+      variacao7d,
+      totalSnapshots: total,
+      sparkline,
+    });
+  }
+
+  const snapsRes = await db.execute({
+    sql: `SELECT loja, produto_chave, preco_avista, coletado_em
+          FROM price_snapshots
+          WHERE modulo = ? AND coletado_em >= ?
+          ORDER BY coletado_em ASC
+          LIMIT 20000`,
+    args: [modulo, de],
+  });
+  const snapshotsPeriodo = snapsRes.rows.map((r) => ({
+    loja: String(r.loja),
+    produtoChave: String(r.produto_chave),
+    precoAvista: Number(r.preco_avista),
+    coletadoEm: String(r.coletado_em),
+  }));
+
+  return c.json(
+    buildOverviewInsights({ produtos, totalSnapshots, ultimaColeta, snapshotsPeriodo })
+  );
 });
 
 api.get('/lojas', async (c) => {

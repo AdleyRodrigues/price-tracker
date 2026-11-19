@@ -1,5 +1,6 @@
 import { createClient, type Client, type InArgs } from '@libsql/client';
 import { identificarProdutoChaveCelular } from '../domain/filtros-celular';
+import { identificarProdutoChaveNotebook } from '../domain/filtros';
 import type { Oferta } from '../types/oferta';
 
 export type ModuloHistorico = 'celular' | 'notebooks';
@@ -21,10 +22,15 @@ const BATCH_SIZE = 50;
 
 function obterCliente(): Client | null {
   const url = process.env.TURSO_DATABASE_URL?.trim();
-  const authToken = process.env.TURSO_AUTH_TOKEN?.trim();
-  if (!url || !authToken) {
-    return null;
+  if (!url) return null;
+
+  // Arquivo local (file:) não exige token; Turso remoto sim.
+  if (url.startsWith('file:')) {
+    return createClient({ url });
   }
+
+  const authToken = process.env.TURSO_AUTH_TOKEN?.trim();
+  if (!authToken) return null;
   return createClient({ url, authToken });
 }
 
@@ -99,6 +105,27 @@ export async function salvarHistorico(snapshots: PriceSnapshotInput[]): Promise<
   }
 }
 
+export function ofertaParaSnapshotNotebook(
+  oferta: Oferta,
+  coletadoEm: string = new Date().toISOString()
+): PriceSnapshotInput | null {
+  const produtoChave = identificarProdutoChaveNotebook(oferta.titulo, oferta.sku);
+  if (!produtoChave) return null;
+
+  return {
+    modulo: 'notebooks',
+    produtoChave,
+    loja: oferta.loja,
+    titulo: oferta.titulo,
+    precoAvista: oferta.precoAVista,
+    precoTotal: oferta.precoTotal,
+    frete: oferta.frete,
+    url: oferta.url,
+    fonteId: oferta.fonteId,
+    coletadoEm,
+  };
+}
+
 /** Soft-fail: nunca propaga erro — Discord e o restante do tracker seguem. */
 export async function salvarHistoricoCelular(ofertas: Oferta[]): Promise<number> {
   try {
@@ -116,6 +143,27 @@ export async function salvarHistoricoCelular(ofertas: Oferta[]): Promise<number>
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     console.error(`[historico] Erro inesperado ao salvar histórico celular: ${msg}`);
+    return 0;
+  }
+}
+
+/** Soft-fail: nunca propaga erro — Discord notebooks segue intacto. */
+export async function salvarHistoricoNotebooks(ofertas: Oferta[]): Promise<number> {
+  try {
+    const coletadoEm = new Date().toISOString();
+    const snapshots = ofertas
+      .map((o) => ofertaParaSnapshotNotebook(o, coletadoEm))
+      .filter((s): s is PriceSnapshotInput => s !== null);
+
+    if (snapshots.length === 0) {
+      console.log('[historico] Nenhuma oferta notebook mapeável para snapshot.');
+      return 0;
+    }
+
+    return await salvarHistorico(snapshots);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error(`[historico] Erro inesperado ao salvar histórico notebooks: ${msg}`);
     return 0;
   }
 }
