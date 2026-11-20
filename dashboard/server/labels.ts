@@ -1,4 +1,4 @@
-import { labelProdutoNotebook } from '../../src/domain/filtros';
+import { labelConfigNotebook, labelProdutoNotebook } from '../../src/domain/filtros';
 
 export const PRODUTO_LABELS: Record<string, string> = {
   poco_x8_pro_max: 'Poco X8 Pro Max',
@@ -11,4 +11,11 @@ export const PRODUTO_LABELS: Record<string, string> = {
 export function labelProduto(chave: string, tituloHint?: string): string {
   if (PRODUTO_LABELS[chave]) return PRODUTO_LABELS[chave]!;
   return labelProdutoNotebook(chave, tituloHint);
+}
+
+
+/** Label descritivo sem códigos (série · CPU · RAM · SSD · GPU) — usado nos KPIs. */
+export function labelDescritivo(chave: string, tituloHint?: string): string {
+  if (PRODUTO_LABELS[chave]) return PRODUTO_LABELS[chave]!;
+  return labelConfigNotebook(chave, tituloHint);
 }

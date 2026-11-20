@@ -1,4 +1,4 @@
-import { labelProduto } from './labels';
+import { labelDescritivo, labelProduto } from './labels';
 
 export type SeriePonto = { coletadoEm: string; preco: number; loja: string };
 
@@ -35,8 +35,10 @@ export type OverviewInsightsResponse = {
     menorPrecoMercado: number | null;
     produtoMenorPreco: string | null;
     lojaMenorPreco: string | null;
+    urlMenorPreco?: string | null;
     maiorQueda7d: number | null;
     produtoMaiorQueda: string | null;
+    urlMaiorQueda?: string | null;
     volatilidadeMedia: number | null;
     totalSnapshots: number;
     ultimaColeta: string | null;
@@ -68,6 +70,7 @@ export type OverviewInsightsResponse = {
     label: string;
     menorPreco: number | null;
     lojaMenorPreco: string | null;
+    urlMenorPreco?: string | null;
     coletadoEm: string | null;
     variacao7d: number | null;
     totalSnapshots: number;
@@ -200,6 +203,7 @@ export function buildOverviewInsights(input: {
     tituloHint?: string;
     menorPreco: number | null;
     lojaMenorPreco: string | null;
+    urlMenorPreco?: string | null;
     coletadoEm: string | null;
     variacao7d: number | null;
     totalSnapshots: number;
@@ -212,6 +216,7 @@ export function buildOverviewInsights(input: {
   const { produtos, totalSnapshots, ultimaColeta, snapshotsPeriodo = [] } = input;
   const hintByChave = new Map(produtos.map((p) => [p.produtoChave, p.tituloHint]));
   const lbl = (chave: string) => labelProduto(chave, hintByChave.get(chave));
+  const lblDetalhado = (chave: string) => labelDescritivo(chave, hintByChave.get(chave));
 
   const comPreco = produtos.filter((p) => p.menorPreco != null);
   const menor = comPreco.reduce<(typeof produtos)[0] | null>((best, p) => {
@@ -357,10 +362,12 @@ export function buildOverviewInsights(input: {
   return {
     kpis: {
       menorPrecoMercado: menor?.menorPreco ?? null,
-      produtoMenorPreco: menor ? lbl(menor.produtoChave) : null,
+      produtoMenorPreco: menor ? lblDetalhado(menor.produtoChave) : null,
       lojaMenorPreco: menor?.lojaMenorPreco ?? null,
+      urlMenorPreco: menor?.urlMenorPreco ?? null,
       maiorQueda7d: queda?.variacao7d ?? null,
-      produtoMaiorQueda: queda ? lbl(queda.produtoChave) : null,
+      produtoMaiorQueda: queda ? lblDetalhado(queda.produtoChave) : null,
+      urlMaiorQueda: queda?.urlMenorPreco ?? null,
       volatilidadeMedia,
       totalSnapshots,
       ultimaColeta,

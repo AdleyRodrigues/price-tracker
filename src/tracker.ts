@@ -3,6 +3,7 @@ dotenv.config();
 
 import './config/env';
 import { coletarOfertas } from './services/collector';
+import { enriquecerRamNotebooks } from './services/enriquecer-ram';
 import { enviarParaDiscord } from './services/discord';
 import { salvarHistoricoNotebooks } from './services/historico';
 import { ordenarPorTotal } from './domain/ranking';
@@ -10,7 +11,10 @@ import { validarTopOfertasComPlaywright } from './services/verificador-playwrigh
 import { TAMANHO_PODIO } from './config/regras';
 
 async function main(): Promise<void> {
-  const coletadas = await coletarOfertas();
+  const brutas = await coletarOfertas();
+
+  // Garante RAM em todas as ofertas (título → página → ficha técnica → estimativa).
+  const coletadas = await enriquecerRamNotebooks(brutas);
 
   // Histórico aditivo: falha silenciosa e não bloqueia o Discord.
   await salvarHistoricoNotebooks(coletadas);

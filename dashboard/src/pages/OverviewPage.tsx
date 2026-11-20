@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { useSearchParams } from 'react-router-dom';
 import { fetchInsights, type OverviewInsightsResponse } from '@/lib/api';
@@ -7,14 +7,23 @@ import { MovementChart } from '@/components/charts/MovementChart';
 import { SnapshotsVolumeChart } from '@/components/charts/SnapshotsVolumeChart';
 import { StoreShareChart } from '@/components/charts/StoreShareChart';
 import { InsightRail } from '@/components/insights/InsightRail';
+import { CostBenefitRanking } from '@/components/market/CostBenefitRanking';
 import { DataFreshnessBanner } from '@/components/market/DataFreshnessBanner';
 import { KpiTheater } from '@/components/market/KpiTheater';
 import { ProductMarketCard } from '@/components/market/ProductMarketCard';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { formatDateTime, formatRelativeTime } from '@/lib/format';
-import { gpuFamiliaNotebook } from '@/lib/gpu';
+import { classificarNotebook, ehNotebookPermitido } from '@/lib/serie-notebook';
 import { labelModulo, parseModulo, trackHint } from '@/lib/modulo';
+import { calcularDestaques4k } from '@/lib/custo-beneficio';
+
+type ChartBucket = {
+  id: string;
+  eyebrow: string;
+  titulo: string;
+  keys: string[];
+};
 
 export function OverviewPage() {
   const [params] = useSearchParams();
@@ -45,22 +54,57 @@ export function OverviewPage() {
     };
   }, [dias, modulo]);
 
-  const labelsByChave = Object.fromEntries(
-    (data?.produtos ?? []).map((p) => [p.produtoChave, p.label])
+  const labelsByChave = useMemo(
+    () => Object.fromEntries((data?.produtos ?? []).map((p) => [p.produtoChave, p.label])),
+    [data]
   );
 
-  const seriesKeys = data?.seriesKeys?.length
-    ? data.seriesKeys
-    : (data?.produtos.map((p) => p.produtoChave) ?? []);
+  const produtosFiltrados = useMemo(() => {
+    if (!data) return [];
+    if (modulo !== 'notebooks') return data.produtos;
+    return data.produtos.filter((p) => ehNotebookPermitido(p.produtoChave, p.label));
+  }, [data, modulo]);
 
-  const keys5050 =
+  const destaques4k = useMemo(() => {
+    if (modulo !== 'notebooks') return null;
+    return calcularDestaques4k(produtosFiltrados);
+  }, [modulo, produtosFiltrados]);
+
+  const seriesKeys = useMemo(() => {
+    if (!data) return [];
+    const raw = data.seriesKeys?.length
+      ? data.seriesKeys
+      : data.produtos.map((p) => p.produtoChave);
+    if (modulo !== 'notebooks') return raw;
+    return raw.filter((k) => ehNotebookPermitido(k, labelsByChave[k]));
+  }, [data, modulo, labelsByChave]);
+
+  const notebookCharts: ChartBucket[] = useMemo(() => {
+    if (modulo !== 'notebooks') return [];
+    const buckets: ChartBucket[] = [
+      { id: 'f16-5050', eyebrow: 'Market pulse · F16 · RTX 5050', titulo: 'Menor preço — F16 RTX 5050', keys: [] },
+      { id: 'f16-5060', eyebrow: 'Market pulse · F16 · RTX 5060', titulo: 'Menor preço — F16 RTX 5060', keys: [] },
+      { id: 'a16-5050', eyebrow: 'Market pulse · A16 · RTX 5050', titulo: 'Menor preço — A16 RTX 5050', keys: [] },
+      { id: 'a16-5060', eyebrow: 'Market pulse · A16 · RTX 5060', titulo: 'Menor preço — A16 RTX 5060', keys: [] },
+    ];
+
+    for (const k of seriesKeys) {
+      const { serie, gpu } = classificarNotebook(k, labelsByChave[k]);
+      if (!serie || (gpu !== '5050' && gpu !== '5060')) continue;
+      const id = `${serie}-${gpu}`;
+      const bucket = buckets.find((b) => b.id === id);
+      if (bucket) bucket.keys.push(k);
+    }
+
+    return buckets.filter((b) => b.keys.length > 0);
+  }, [modulo, seriesKeys, labelsByChave]);
+
+  const movimentoFiltrado =
     modulo === 'notebooks'
-      ? seriesKeys.filter((k) => gpuFamiliaNotebook(k, labelsByChave[k]) === '5050')
-      : [];
-  const keys5060 =
-    modulo === 'notebooks'
-      ? seriesKeys.filter((k) => gpuFamiliaNotebook(k, labelsByChave[k]) === '5060')
-      : [];
+      ? (data?.movimento ?? produtosFiltrados).filter((p) =>
+        ehNotebookPermitido(p.produtoChave, 'label' in p ? p.label : labelsByChave[p.produtoChave])
+      )
+      : (data?.movimento ?? data?.produtos ?? []);
 
   return (
     <div className="space-y-8">
@@ -78,8 +122,9 @@ export function OverviewPage() {
             Market Pulse
           </h2>
           <p className="mt-2 max-w-xl text-sm text-muted-foreground sm:text-base">
-            Gráficos, tendências e insights de {labelModulo(modulo).toLowerCase()} monitorados —
-            preço, loja e momento.
+            {modulo === 'notebooks'
+              ? 'Só TUF F16 e A16 — gráficos por série/GPU e ranking de custo-benefício.'
+              : `Gráficos, tendências e insights de ${labelModulo(modulo).toLowerCase()} monitorados — preço, loja e momento.`}
           </p>
           {data?.kpis.ultimaColeta ? (
             <p className="mt-2 text-sm text-muted-foreground">
@@ -138,36 +183,28 @@ export function OverviewPage() {
       ) : (
         <>
           <DataFreshnessBanner atualizadoEm={data.kpis.ultimaColeta} />
-          <KpiTheater kpis={data.kpis} />
+          <KpiTheater kpis={data.kpis} modulo={modulo} destaques4k={destaques4k} />
           {modulo === 'notebooks' ? (
             <div className="space-y-4">
-              {keys5050.length > 0 ? (
+              {notebookCharts.map((chart) => (
                 <MarketPulseChart
+                  key={chart.id}
                   data={data.seriesComparativo}
-                  produtos={keys5050}
+                  produtos={chart.keys}
                   labels={labelsByChave}
-                  eyebrow="Market pulse · RTX 5050"
-                  titulo="Menor preço — RTX 5050"
-                  subtitulo={`${keys5050.length} modelo${keys5050.length === 1 ? '' : 's'} · uma linha por SKU`}
+                  eyebrow={chart.eyebrow}
+                  titulo={chart.titulo}
+                  subtitulo={`${chart.keys.length} modelo${chart.keys.length === 1 ? '' : 's'} · uma linha por SKU`}
+                  ocultarGpu={true}
                   atualizadoEm={data.kpis.ultimaColeta}
                 />
-              ) : null}
-              {keys5060.length > 0 ? (
-                <MarketPulseChart
-                  data={data.seriesComparativo}
-                  produtos={keys5060}
-                  labels={labelsByChave}
-                  eyebrow="Market pulse · RTX 5060"
-                  titulo="Menor preço — RTX 5060"
-                  subtitulo={`${keys5060.length} modelo${keys5060.length === 1 ? '' : 's'} · uma linha por SKU`}
-                  atualizadoEm={data.kpis.ultimaColeta}
-                />
-              ) : null}
-              {keys5050.length === 0 && keys5060.length === 0 ? (
+              ))}
+              {notebookCharts.length === 0 ? (
                 <div className="market-panel p-8 text-sm text-muted-foreground">
-                  Nenhum SKU com RTX 5050/5060 na janela selecionada.
+                  Nenhum SKU F16/A16 com RTX 5050/5060 na janela selecionada.
                 </div>
               ) : null}
+              <CostBenefitRanking produtos={produtosFiltrados} />
             </div>
           ) : (
             <MarketPulseChart
@@ -180,8 +217,8 @@ export function OverviewPage() {
           )}
 
           <div className="grid gap-4 lg:grid-cols-3">
-            <MovementChart data={data.movimento ?? data.produtos} />
-            <SnapshotsVolumeChart data={data.movimento ?? data.produtos} />
+            <MovementChart data={movimentoFiltrado} />
+            <SnapshotsVolumeChart data={movimentoFiltrado} />
             <StoreShareChart stores={data.lojasRanking ?? []} />
           </div>
 
@@ -189,9 +226,9 @@ export function OverviewPage() {
 
           <section className="space-y-3">
             <h3 className="font-display text-sm font-semibold tracking-tight">
-              {modulo === 'notebooks' ? 'Modelos (SKU)' : 'Produtos'}
+              {modulo === 'notebooks' ? 'Modelos F16 / A16' : 'Produtos'}
             </h3>
-            {data.produtos.length === 0 ? (
+            {produtosFiltrados.length === 0 ? (
               <div className="market-panel p-8 text-sm text-muted-foreground">
                 Nenhum histórico ainda. Rode{' '}
                 <code className="rounded bg-muted px-1.5 py-0.5 text-xs">{trackHint(modulo)}</code> com
@@ -199,7 +236,7 @@ export function OverviewPage() {
               </div>
             ) : (
               <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
-                {data.produtos.map((p, i) => (
+                {produtosFiltrados.map((p, i) => (
                   <ProductMarketCard key={p.produtoChave} {...p} index={i} modulo={modulo} />
                 ))}
               </div>

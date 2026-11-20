@@ -30,9 +30,16 @@ type Props = {
   titulo?: string;
   subtitulo?: string;
   eyebrow?: string;
+  /** Oculta o sufixo da GPU nos hovers/legendas quando o gráfico já é dedicado a uma GPU */
+  ocultarGpu?: boolean;
   /** Último snapshot real usado no gráfico. */
   atualizadoEm?: string | null;
 };
+
+function formatarLabelSeries(rawLabel: string, ocultarGpu: boolean): string {
+  if (!ocultarGpu) return rawLabel;
+  return rawLabel.replace(/(?:\s*·\s*|\s+)RTX\s*\d{4}(?:\s*Ti)?/gi, '').trim();
+}
 
 export function MarketPulseChart({
   data,
@@ -41,13 +48,20 @@ export function MarketPulseChart({
   titulo = 'Menor preço por coleta',
   subtitulo = 'Uma linha por modelo',
   eyebrow = 'Market pulse',
+  ocultarGpu,
   atualizadoEm = null,
 }: Props) {
-  const series = produtos.map((chave, i) => ({
-    chave,
-    label: labels[chave] ?? chave,
-    color: colorFor(chave, i),
-  }));
+  const gpuNoHeader = Boolean((titulo + ' ' + (eyebrow ?? '')).match(/rtx\s*\d{4}/i));
+  const deveOcultarGpu = ocultarGpu ?? gpuNoHeader;
+
+  const series = produtos.map((chave, i) => {
+    const rawLabel = labels[chave] ?? chave;
+    return {
+      chave,
+      label: formatarLabelSeries(rawLabel, deveOcultarGpu),
+      color: colorFor(chave, i),
+    };
+  });
 
   const ultimoPonto =
     atualizadoEm ??
@@ -114,7 +128,10 @@ export function MarketPulseChart({
                   boxShadow: '0 12px 30px -18px rgba(11,18,32,0.4)',
                   maxWidth: 420,
                 }}
-                formatter={(value: number, name: string) => [formatBRL(value), name]}
+                formatter={(value: number, name: string) => [
+                  formatBRL(value),
+                  formatarLabelSeries(name, deveOcultarGpu),
+                ]}
               />
               <Legend
                 verticalAlign="bottom"

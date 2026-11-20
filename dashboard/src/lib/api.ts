@@ -69,8 +69,10 @@ export type OverviewInsightsResponse = {
     menorPrecoMercado: number | null;
     produtoMenorPreco: string | null;
     lojaMenorPreco: string | null;
+    urlMenorPreco?: string | null;
     maiorQueda7d: number | null;
     produtoMaiorQueda: string | null;
+    urlMaiorQueda?: string | null;
     volatilidadeMedia: number | null;
     totalSnapshots: number;
     ultimaColeta: string | null;
@@ -101,6 +103,7 @@ export type OverviewInsightsResponse = {
     label: string;
     menorPreco: number | null;
     lojaMenorPreco: string | null;
+    urlMenorPreco?: string | null;
     coletadoEm: string | null;
     variacao7d: number | null;
     totalSnapshots: number;
@@ -162,5 +165,8 @@ export function daysAgoIso(days: number): string {
 
 export function isRealUrl(url: string | null | undefined): boolean {
   if (!url) return false;
-  return url.startsWith('http://') || url.startsWith('https://');
+  return (
+    (url.startsWith('http://') || url.startsWith('https://')) &&
+    !url.includes('example.com')
+  );
 }

@@ -134,7 +134,7 @@ api.get('/produtos', async (c) => {
   const produtosRes = await db.execute({
     sql: `SELECT produto_chave, COUNT(*) AS total
           FROM price_snapshots
-          WHERE modulo = ?
+          WHERE modulo = ? AND url NOT LIKE '%example.com%'
           GROUP BY produto_chave
           ORDER BY produto_chave ASC`,
     args: [modulo],
@@ -150,7 +150,7 @@ api.get('/produtos', async (c) => {
     const ultimaColeta = await db.execute({
       sql: `SELECT MAX(coletado_em) AS max_em
             FROM price_snapshots
-            WHERE modulo = ? AND produto_chave = ?`,
+            WHERE modulo = ? AND produto_chave = ? AND url NOT LIKE '%example.com%'`,
       args: [modulo, produtoChave],
     });
     const maxEm = ultimaColeta.rows[0]?.max_em
@@ -166,7 +166,7 @@ api.get('/produtos', async (c) => {
       const melhorNaUltima = await db.execute({
         sql: `SELECT preco_avista, loja, url, coletado_em
               FROM price_snapshots
-              WHERE modulo = ? AND produto_chave = ? AND coletado_em = ?
+              WHERE modulo = ? AND produto_chave = ? AND coletado_em = ? AND url NOT LIKE '%example.com%'
               ORDER BY preco_avista ASC
               LIMIT 1`,
         args: [modulo, produtoChave, maxEm],
@@ -351,7 +351,7 @@ api.get('/insights', async (c) => {
   const produtosRes = await db.execute({
     sql: `SELECT produto_chave, COUNT(*) AS total
           FROM price_snapshots
-          WHERE modulo = ?
+          WHERE modulo = ? AND url NOT LIKE '%example.com%'
           GROUP BY produto_chave
           ORDER BY produto_chave ASC`,
     args: [modulo],
@@ -359,7 +359,7 @@ api.get('/insights', async (c) => {
 
   const totalRes = await db.execute({
     sql: `SELECT COUNT(*) AS n, MAX(coletado_em) AS ultima
-          FROM price_snapshots WHERE modulo = ?`,
+          FROM price_snapshots WHERE modulo = ? AND url NOT LIKE '%example.com%'`,
     args: [modulo],
   });
   const totalSnapshots = Number(totalRes.rows[0]?.n ?? 0);
@@ -370,6 +370,7 @@ api.get('/insights', async (c) => {
     tituloHint?: string;
     menorPreco: number | null;
     lojaMenorPreco: string | null;
+    urlMenorPreco?: string | null;
     coletadoEm: string | null;
     variacao7d: number | null;
     totalSnapshots: number;
@@ -382,25 +383,27 @@ api.get('/insights', async (c) => {
 
     const ultima = await db.execute({
       sql: `SELECT MAX(coletado_em) AS max_em FROM price_snapshots
-            WHERE modulo = ? AND produto_chave = ?`,
+            WHERE modulo = ? AND produto_chave = ? AND url NOT LIKE '%example.com%'`,
       args: [modulo, produtoChave],
     });
     const maxEm = ultima.rows[0]?.max_em ? String(ultima.rows[0].max_em) : null;
 
     let menorPreco: number | null = null;
     let lojaMenorPreco: string | null = null;
+    let urlMenorPreco: string | null = null;
     let coletadoEm: string | null = maxEm;
 
     if (maxEm) {
       const best = await db.execute({
-        sql: `SELECT preco_avista, loja, coletado_em FROM price_snapshots
-              WHERE modulo = ? AND produto_chave = ? AND coletado_em = ?
+        sql: `SELECT preco_avista, loja, url, coletado_em FROM price_snapshots
+              WHERE modulo = ? AND produto_chave = ? AND coletado_em = ? AND url NOT LIKE '%example.com%'
               ORDER BY preco_avista ASC LIMIT 1`,
         args: [modulo, produtoChave, maxEm],
       });
       if (best.rows[0]) {
         menorPreco = Number(best.rows[0].preco_avista);
         lojaMenorPreco = String(best.rows[0].loja);
+        urlMenorPreco = best.rows[0].url ? String(best.rows[0].url) : null;
         coletadoEm = String(best.rows[0].coletado_em);
       }
     }
@@ -416,7 +419,7 @@ api.get('/insights', async (c) => {
     const serieRes = await db.execute({
       sql: `SELECT coletado_em, MIN(preco_avista) AS min_preco
             FROM price_snapshots
-            WHERE modulo = ? AND produto_chave = ? AND coletado_em >= ?
+            WHERE modulo = ? AND produto_chave = ? AND coletado_em >= ? AND url NOT LIKE '%example.com%'
             GROUP BY coletado_em
             ORDER BY coletado_em ASC`,
       args: [modulo, produtoChave, de],
@@ -431,6 +434,7 @@ api.get('/insights', async (c) => {
       tituloHint,
       menorPreco,
       lojaMenorPreco,
+      urlMenorPreco,
       coletadoEm,
       variacao7d,
       totalSnapshots: total,
@@ -441,7 +445,7 @@ api.get('/insights', async (c) => {
   const snapsRes = await db.execute({
     sql: `SELECT loja, produto_chave, preco_avista, coletado_em
           FROM price_snapshots
-          WHERE modulo = ? AND coletado_em >= ?
+          WHERE modulo = ? AND coletado_em >= ? AND url NOT LIKE '%example.com%'
           ORDER BY coletado_em ASC
           LIMIT 20000`,
     args: [modulo, de],

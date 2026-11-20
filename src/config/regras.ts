@@ -53,7 +53,7 @@ export const FRETE_FALLBACK_AMAZON = 0;
 export const TAMANHO_PODIO = Number(process.env.TAMANHO_PODIO) || 10;
 
 export const TITULO_BLOQUEADO =
-  /desktop|pc\s*gamer|placa\s*de\s*v[íi]deo|gpu|mesa|suporte|cooler|gabinete|fonte|monitor|teclado|usado|\bv16\b|\bv3607\b|gaming\s*v16/i;
+  /desktop|pc\s*gamer|placa\s*de\s*v[íi]deo|gpu|mesa|suporte|cooler|gabinete|fonte|monitor|teclado|usado|\bv16\b|\bv3607\b|gaming\s*v16|\bg16\b|\bm16\b|\bg614\b|\bg634\b|\bgu604\b|\bgu605\b|rog\s*strix\s*g16|tuf\s*gaming\s*g16|tuf\s*gaming\s*m16/i;
 
 export const VALIDA_NOTEBOOK = /notebook|laptop/i;
 export const VALIDA_MARCA_ASUS = /\basus\b/i;

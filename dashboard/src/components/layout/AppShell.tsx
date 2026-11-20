@@ -1,11 +1,14 @@
 import { Link, Outlet, useSearchParams } from 'react-router-dom';
 import { Activity } from 'lucide-react';
 import { labelModulo, parseModulo, subtituloModulo, type ModuloDash } from '@/lib/modulo';
+import { useDocumentTitle } from '@/lib/useDocumentTitle';
 import { cn } from '@/lib/utils';
 
 export function AppShell() {
   const [params, setParams] = useSearchParams();
   const modulo = parseModulo(params.get('modulo'));
+
+  useDocumentTitle(modulo === 'notebooks' ? 'Notebooks ASUS TUF' : 'Smartphones Xiaomi');
 
   function setModulo(next: ModuloDash) {
     const nextParams = new URLSearchParams(params);

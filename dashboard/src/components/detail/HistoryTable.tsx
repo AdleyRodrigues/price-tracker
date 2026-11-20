@@ -76,14 +76,16 @@ export function HistoryTable({ snapshots, minPreco }: Props) {
                         <a
                           href={s.url}
                           target="_blank"
-                          rel="noreferrer"
-                          className="inline-flex items-center gap-1 text-primary hover:underline"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1.5 rounded-md bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary transition hover:bg-primary hover:text-primary-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                          title={`Ver oferta no site da ${s.loja}`}
+                          aria-label={`Abrir oferta no site da ${s.loja}`}
                         >
-                          <ExternalLink className="h-3.5 w-3.5" />
-                          <span className="sr-only sm:not-sr-only sm:text-xs">Abrir</span>
+                          <span>Ver oferta</span>
+                          <ExternalLink className="h-3 w-3" />
                         </a>
                       ) : (
-                        <span className="text-xs text-muted-foreground">—</span>
+                        <span className="text-xs text-muted-foreground" title="Registro sem URL externa">—</span>
                       )}
                     </TableCell>
                   </TableRow>

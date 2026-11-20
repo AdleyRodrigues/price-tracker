@@ -8,6 +8,7 @@ import {
   VALIDA_TELA_16_10,
 } from '../config/regras';
 import { extrairHardware } from './hardware';
+import { formatarRam, resolverRamNotebook } from './ram-notebook';
 import { Oferta } from '../types/oferta';
 import { extrairPreco } from '../lib/preco';
 
@@ -17,10 +18,16 @@ const ASUS_PART_NUMBER = /\b([A-Z]{2}\d{3}[A-Z]{2,5})(?:-[A-Z]{0,4}\d{0,5})?\b/i
 /** ASIN Amazon típico — não é modelo de notebook. */
 const AMAZON_ASIN = /^B0[A-Z0-9]{8}$/i;
 
-const SERIE_NOTEBOOK = /\b(f16|a16|g16|m16|fx608|fx607|fa607|g614|g634|gu604|gu605)\b/i;
+/** Séries permitidas no histórico/dash: só TUF F16 e A16. */
+const SERIE_NOTEBOOK = /\b(f16|a16|fx608|fx607|fa607)\b/i;
 
-/** V16 / V3607 fora do escopo (TUF F16 / A16 etc.). */
-const SERIE_V16_IGNORADA = /\bv16\b|\bv3607\b|\brp213\b|gaming\s*v16/i;
+/** Fora do escopo: V16, G16, M16 e afins. */
+const SERIE_FORA_ESCOPO =
+  /\bv16\b|\bv3607\b|\brp213\b|gaming\s*v16|\bg16\b|\bm16\b|\bg614\b|\bg634\b|\bgu604\b|\bgu605\b|rog\s*strix\s*g16|tuf\s*gaming\s*g16|tuf\s*gaming\s*m16/i;
+
+/** Part numbers ASUS que não são F16/A16. */
+const PN_FORA_ESCOPO = /^(g6|gu|m6|gx|gz)/i;
+const PN_F16_A16 = /^(fx608|fx607|fa607)/i;
 
 /** Sufixos comerciais do F16 que às vezes aparecem sem o PN completo. */
 const F16_SUFFIX_TO_PN: Record<string, string> = {
@@ -70,8 +77,20 @@ export function inferirSkuTufF16(titulo: string): string | null {
   return null;
 }
 
+function ehSerieF16OuA16(texto: string, chave?: string | null): boolean {
+  if (chave) {
+    if (PN_FORA_ESCOPO.test(chave) || /^(g16|m16|v16)_/i.test(chave)) return false;
+    if (PN_F16_A16.test(chave) || /^(f16|a16)_/i.test(chave)) return true;
+    // Part number ASUS genérico que não é da família F16/A16
+    if (/^[a-z]{2}\d{3}[a-z]{2,5}$/i.test(chave)) return false;
+  }
+  if (SERIE_FORA_ESCOPO.test(texto)) return false;
+  return /\b(f16|a16|fx608|fx607|fa607)\b/i.test(texto) || /tuf\s+gaming\s+(f16|a16)\b/i.test(texto);
+}
+
 /**
  * Chave de histórico por modelo/SKU (1 linha no dash por notebook).
+ * Escopo: só TUF F16 e A16.
  * 1) Part number ASUS no título/sku
  * 2) Inferência TUF F16 → FX608JHI/JHR/JMI
  * 3) Ignora ASIN
@@ -82,30 +101,47 @@ export function identificarProdutoChaveNotebook(
   sku?: string
 ): string | null {
   const texto = `${titulo} ${sku ?? ''}`;
-  if (SERIE_V16_IGNORADA.test(texto)) return null;
+  if (SERIE_FORA_ESCOPO.test(texto)) return null;
+
+  let chave: string | null = null;
 
   if (sku && !ehAsinAmazon(sku)) {
     const doSku = extrairPartNumberAsus(sku) ?? (/^[A-Z]{2}\d{3}[A-Z]{2,5}$/i.test(sku.trim())
       ? sku.trim().toLowerCase()
       : null);
-    if (doSku) return doSku;
+    if (doSku) chave = doSku;
   }
 
-  const doTitulo = extrairPartNumberAsus(titulo);
-  if (doTitulo) return doTitulo;
+  if (!chave) {
+    const doTitulo = extrairPartNumberAsus(titulo);
+    if (doTitulo) chave = doTitulo;
+  }
 
-  const inferido = inferirSkuTufF16(titulo);
-  if (inferido) return inferido;
+  if (!chave) {
+    chave = inferirSkuTufF16(titulo);
+  }
 
-  const hw = extrairHardware(titulo);
-  const serie = titulo.match(SERIE_NOTEBOOK)?.[1]?.toLowerCase();
-  const gpu = hw.gpu?.toLowerCase().replace(/\s+/g, '') ?? null;
-  const ram = hw.ram?.match(/\d+/)?.[0] ?? null;
+  if (!chave) {
+    const hw = extrairHardware(titulo);
+    const serieRaw = titulo.match(SERIE_NOTEBOOK)?.[1]?.toLowerCase();
+    const serie =
+      serieRaw === 'fx608' || serieRaw === 'fx607'
+        ? 'f16'
+        : serieRaw === 'fa607'
+          ? 'a16'
+          : serieRaw;
+    const gpu = hw.gpu?.toLowerCase().replace(/\s+/g, '') ?? null;
+    const ram = hw.ram?.match(/\d+/)?.[0] ?? null;
 
-  if (!serie && !gpu) return null;
+    if (!serie && !gpu) return null;
+    if (serie !== 'f16' && serie !== 'a16') return null;
 
-  // Fallback estável: série + GPU + RAM (sem CPU, que fragmentava i5 vs i5-14450hx).
-  return [serie ?? 'asus', gpu ?? 'gpu', ram ? `${ram}gb` : null].filter(Boolean).join('_');
+    // Fallback estável: série + GPU + RAM (sem CPU, que fragmentava i5 vs i5-14450hx).
+    chave = [serie, gpu ?? 'gpu', ram ? `${ram}gb` : null].filter(Boolean).join('_');
+  }
+
+  if (!ehSerieF16OuA16(texto, chave)) return null;
+  return chave;
 }
 
 /** Label amigável: SKU/série · CPU · RAM · GPU. */
@@ -113,13 +149,11 @@ export function labelProdutoNotebook(chave: string, tituloHint?: string): string
   const pn = /^[a-z]{2}\d{3}[a-z]{2,5}$/i.test(chave) ? chave.toUpperCase() : null;
 
   if (!tituloHint) {
-    return (
-      pn ??
-      chave
-        .split('_')
-        .map((p) => p.toUpperCase())
-        .join(' · ')
-    );
+    if (pn) return `${pn} · ${formatarRam(resolverRamNotebook({ chave })).replace(' RAM', '')}`;
+    return chave
+      .split('_')
+      .map((p) => p.toUpperCase())
+      .join(' · ');
   }
 
   const hw = extrairHardware(tituloHint);
@@ -127,8 +161,34 @@ export function labelProdutoNotebook(chave: string, tituloHint?: string): string
   const modelo = pn ?? serie ?? chave.split('_')[0]?.toUpperCase() ?? chave.toUpperCase();
   const partes = [modelo];
   if (hw.cpu) partes.push(hw.cpu);
-  if (hw.ram) partes.push(hw.ram.replace(/\s*RAM$/i, '').trim());
+  partes.push(formatarRam(resolverRamNotebook({ titulo: tituloHint, chave })).replace(' RAM', ''));
   if (hw.gpu) partes.push(hw.gpu);
+  return partes.join(' · ');
+}
+
+/** Nome comercial da série a partir da chave/título (sem part number). */
+function nomeSerieNotebook(chave: string, tituloHint?: string): string {
+  const texto = `${chave} ${tituloHint ?? ''}`;
+  if (/^(fx608|fx607)|^f16_/i.test(chave) || /\b(f16|fx608|fx607)\b/i.test(texto)) return 'ASUS TUF Gaming F16';
+  if (/^(fa607|fa608)|^a16_/i.test(chave) || /\b(a16|fa607|fa608)\b/i.test(texto)) return 'ASUS TUF Gaming A16';
+  return 'Notebook ASUS';
+}
+
+/**
+ * Label descritivo (sem códigos): Série · CPU · RAM · SSD · GPU.
+ * Ex.: "ASUS TUF Gaming A16 · Ryzen 7 · 16 GB RAM · 512 GB SSD · RTX 4060"
+ */
+export function labelConfigNotebook(chave: string, tituloHint?: string): string {
+  const hw = extrairHardware(tituloHint ?? '');
+  const ram = formatarRam(resolverRamNotebook({ titulo: tituloHint, chave }));
+  const gpuChave = chave.match(/rtx\s*(\d{4})/i)?.[1];
+  const gpu = hw.gpu ?? (gpuChave ? `RTX ${gpuChave}` : null);
+
+  const partes = [nomeSerieNotebook(chave, tituloHint)];
+  if (hw.cpu) partes.push(hw.cpu);
+  partes.push(ram);
+  if (hw.ssd) partes.push(hw.ssd);
+  if (gpu) partes.push(gpu);
   return partes.join(' · ');
 }
 

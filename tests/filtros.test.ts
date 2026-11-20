@@ -73,11 +73,6 @@ describe('filtros domain', () => {
       ).toBe(false);
       expect(
         tituloBloqueado(
-          'Laptop ASUS ROG Strix G16 Intel Core i9 16GB RAM 1TB SSD RTX 5060 16 polegadas 240Hz'
-        )
-      ).toBe(false);
-      expect(
-        tituloBloqueado(
           'Notebook ASUS Vivobook Pro 16 OLED Intel Core i9 32GB RTX 4060 3.2K 16:10'
         )
       ).toBe(false);
@@ -86,6 +81,19 @@ describe('filtros domain', () => {
           'Notebook ASUS TUF Gaming F16, Intel Core i7 14650HX, RTX 5060, 16GB, 512GB SSD, KeepOS, 16" FHD'
         )
       ).toBe(false);
+    });
+
+    it('bloqueia séries fora de escopo (G16, M16, V16, etc.)', () => {
+      expect(
+        tituloBloqueado(
+          'Laptop ASUS ROG Strix G16 Intel Core i9 16GB RAM 1TB SSD RTX 5060 16 polegadas 240Hz'
+        )
+      ).toBe(true);
+      expect(
+        tituloBloqueado(
+          'Notebook ASUS TUF Gaming G16 RTX 5050 16:10'
+        )
+      ).toBe(true);
     });
 
     it('bloqueia modelos da linha ASUS V16 / V3607', () => {

@@ -1,8 +1,9 @@
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowUpRight, ChevronRight } from 'lucide-react';
+import { ArrowUpRight, ChevronRight, ExternalLink } from 'lucide-react';
 import { ProductSparkline } from '@/components/charts/ProductSparkline';
 import { Badge } from '@/components/ui/badge';
+import { isRealUrl } from '@/lib/api';
 import { formatBRL, formatDateTime, formatPct } from '@/lib/format';
 import { variacaoLabel } from '@/lib/insights';
 import type { ModuloDash } from '@/lib/modulo';
@@ -14,6 +15,7 @@ type Props = {
   label: string;
   menorPreco: number | null;
   lojaMenorPreco: string | null;
+  urlMenorPreco?: string | null;
   coletadoEm: string | null;
   variacao7d: number | null;
   totalSnapshots: number;
@@ -27,6 +29,7 @@ export function ProductMarketCard({
   label,
   menorPreco,
   lojaMenorPreco,
+  urlMenorPreco,
   coletadoEm,
   variacao7d,
   totalSnapshots,
@@ -87,7 +90,21 @@ export function ProductMarketCard({
             Abrir price theater
             <ChevronRight className="h-4 w-4" />
           </span>
-          <ArrowUpRight className="h-4 w-4 opacity-0 transition-opacity group-hover:opacity-100" />
+          {isRealUrl(urlMenorPreco) ? (
+            <span
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                window.open(urlMenorPreco!, '_blank', 'noopener,noreferrer');
+              }}
+              className="inline-flex items-center gap-1 rounded-md bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary transition hover:bg-primary hover:text-primary-foreground"
+              title="Abrir oferta diretamente na loja"
+            >
+              Ver na loja <ExternalLink className="h-3 w-3" />
+            </span>
+          ) : (
+            <ArrowUpRight className="h-4 w-4 opacity-0 transition-opacity group-hover:opacity-100" />
+          )}
         </div>
       </Link>
     </motion.div>

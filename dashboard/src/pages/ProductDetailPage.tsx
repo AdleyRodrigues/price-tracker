@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, ExternalLink } from 'lucide-react';
 import {
   daysAgoIso,
   fetchHistorico,
   fetchLojas,
+  isRealUrl,
   type HistoricoResponse,
 } from '@/lib/api';
 import { formatPct } from '@/lib/format';
@@ -18,6 +19,7 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AnimatedNumber } from '@/components/market/AnimatedNumber';
 import { parseModulo } from '@/lib/modulo';
+import { useDocumentTitle } from '@/lib/useDocumentTitle';
 
 export function ProductDetailPage() {
   const { produtoChave = '' } = useParams();
@@ -31,6 +33,14 @@ export function ProductDetailPage() {
   const [data, setData] = useState<HistoricoResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  useDocumentTitle(data?.label ?? produtoChave);
+
+  const melhorUrl = useMemo(() => {
+    const snapsValidos = (data?.snapshots ?? []).filter((s) => isRealUrl(s.url));
+    if (snapsValidos.length === 0) return null;
+    return snapsValidos.reduce((best, s) => (s.precoAvista < best.precoAvista ? s : best), snapsValidos[0])?.url;
+  }, [data]);
 
   const de = useMemo(() => daysAgoIso(Number(range)), [range]);
 
@@ -115,9 +125,23 @@ export function ProductDetailPage() {
                   </span>
                 ) : null}
               </div>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Melhor loja · {insights?.melhorLoja ?? '—'} · mínimo no intervalo selecionado
-              </p>
+              <div className="mt-2 flex flex-wrap items-center gap-3">
+                <p className="text-sm text-muted-foreground">
+                  Melhor loja · <span className="font-semibold text-foreground">{insights?.melhorLoja ?? '—'}</span> · mínimo no intervalo
+                </p>
+                {melhorUrl ? (
+                  <a
+                    href={melhorUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1 text-xs font-semibold text-primary-foreground shadow-sm transition hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                    title={`Abrir menor oferta na ${insights?.melhorLoja ?? 'loja'}`}
+                  >
+                    <span>Ir para a oferta</span>
+                    <ExternalLink className="h-3.5 w-3.5" />
+                  </a>
+                ) : null}
+              </div>
             </div>
           </div>
           <FiltersBar

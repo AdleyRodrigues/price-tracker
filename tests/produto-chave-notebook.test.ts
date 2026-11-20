@@ -65,7 +65,7 @@ describe('produto chave notebook', () => {
     ).toBe('fx608jhi');
   });
 
-  it('ignora ASUS V16 (fora do escopo)', () => {
+  it('ignora ASUS V16 / G16 / M16 (fora do escopo)', () => {
     expect(
       identificarProdutoChaveNotebook(
         'Notebook ASUS Gaming V16, Intel Core 5, NVIDIA RTX 5050, 8GB, 512GB SSD'
@@ -76,6 +76,24 @@ describe('produto chave notebook', () => {
         'Notebook Asus Gamer V16 Rp213 RTX 5050 Core 5 8GB Ram'
       )
     ).toBeNull();
+    expect(
+      identificarProdutoChaveNotebook(
+        'Notebook ASUS ROG Strix G16 RTX 5060 Core Ultra 9 32GB RAM'
+      )
+    ).toBeNull();
+    expect(
+      identificarProdutoChaveNotebook(
+        'Notebook ASUS TUF Gaming G16 RTX 5060 16GB'
+      )
+    ).toBeNull();
+  });
+
+  it('aceita TUF A16 / FA607', () => {
+    expect(
+      identificarProdutoChaveNotebook(
+        'ASUS TUF A16 FA607NV RTX 4060 Ryzen 7 16 polegadas WUXGA 16:10'
+      )
+    ).toBe('fa607nv');
   });
 
   it('retorna null quando não há série nem GPU mapeável', () => {
@@ -90,6 +108,7 @@ describe('produto chave notebook', () => {
       )
     ).toBe('FX608JHI · Core i5-14450HX · 16 GB · RTX 5050');
 
-    expect(labelProdutoNotebook('fx608jhr')).toBe('FX608JHR');
+    // Sem título: RAM vem da ficha técnica do part number (nunca fica sem RAM)
+    expect(labelProdutoNotebook('fx608jhr')).toBe('FX608JHR · 8 GB (ficha técnica)');
   });
 });
