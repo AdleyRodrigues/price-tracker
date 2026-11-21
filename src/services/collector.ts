@@ -1,5 +1,6 @@
 import { detalheErro } from '../config/http';
 import { aceitarOferta } from '../domain/filtros';
+import { mergeOfertas } from '../domain/merge-ofertas';
 import { scrapers } from '../scrapers';
 import { Oferta } from '../types/oferta';
 
@@ -16,15 +17,6 @@ export async function coletarOfertas(): Promise<Oferta[]> {
   }
 
   const validas = ofertas.filter(aceitarOferta);
-  const mapaUnicas = new Map<string, Oferta>();
-
-  for (const o of validas) {
-    const chave = o.url.trim().toLowerCase();
-    const existente = mapaUnicas.get(chave);
-    if (!existente || o.precoTotal < existente.precoTotal) {
-      mapaUnicas.set(chave, o);
-    }
-  }
-
-  return [...mapaUnicas.values()];
+  // Dedupe URL canônica entre scrapers manuais + Reef/Gecko/Apify
+  return mergeOfertas(validas);
 }
