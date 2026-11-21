@@ -1,5 +1,5 @@
 name: Persist historico DB
-description: Publica data/historico.db na branch historico-data (fonte compartilhada Actions ↔ local)
+description: "DEPRECATED — prefer Turso Cloud (TURSO_* secrets). Legacy: publica data/historico.db na branch historico-data"
 
 runs:
   using: composite

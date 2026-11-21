@@ -54,10 +54,24 @@ export function isDbConfigured(): boolean {
   return Boolean(process.env.TURSO_AUTH_TOKEN?.trim());
 }
 
+/** `turso` = libsql/https remoto; `file` = SQLite local (+ sync historico-data legado). */
+export function getDbMode(): 'turso' | 'file' | 'unset' {
+  const url = process.env.TURSO_DATABASE_URL?.trim();
+  if (!url) return 'unset';
+  if (url.startsWith('file:')) return 'file';
+  return 'turso';
+}
+
 /** Sincroniza SQLite local com a branch historico-data e reabre o client se baixou. */
 export async function ensureHistoricoSynced(force = false): Promise<void> {
-  const result = await syncHistoricoFromRemote({ force });
+  const result = await syncHistoricoFromRemote({
+    force,
+    // Windows: não dá para rename/overwrite com o libSQL ainda segurando o arquivo
+    beforeReplace: () => resetDbClient(),
+  });
   if (result.updated) {
     resetDbClient();
+  } else if (result.reason.startsWith('replace-falhou:')) {
+    console.warn(`[historico-sync] ${result.reason}`);
   }
 }

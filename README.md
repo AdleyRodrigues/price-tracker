@@ -155,16 +155,20 @@ price-tracker/
 
 Camada **extra** ao Discord: web responsiva com overview, gráfico e tabela (preço × data × loja).
 
-### Setup do banco (libSQL)
-**Dev local:** o `.env` pode apontar para um SQLite em disco (`file:.../data/historico.db`) — não precisa de `TURSO_AUTH_TOKEN`.
+### Setup do banco (Turso / libSQL)
 
-**Produção / multi-device (Turso):**
-1. Crie um banco em [turso.tech](https://turso.tech) e copie `TURSO_DATABASE_URL` + `TURSO_AUTH_TOKEN`.
-2. Rode a migration:
+**Recomendado (Turso Cloud):** Actions (`monitor.yml`, `celular.yml`) e o dashboard local usam o **mesmo** banco remoto — sem sync de arquivo.
+
+1. Crie um banco em [turso.tech](https://turso.tech) (CLI: `turso db create lg-price-tracker`).
+2. Aplique o schema e (opcional) importe o SQLite legado:
 ```bash
-turso db shell SEU_DB < sql/001_historico.sql
+turso db shell lg-price-tracker < sql/001_historico.sql
+# ou, a partir de data/historico.db:
+TURSO_DATABASE_URL=libsql://... TURSO_AUTH_TOKEN=... pnpm exec ts-node scripts/migrate-historico-to-turso.ts
 ```
-3. Coloque as variáveis no `.env` e nos secrets do GitHub (`TURSO_DATABASE_URL`, `TURSO_AUTH_TOKEN`) para o workflow `celular.yml`.
+3. Coloque `TURSO_DATABASE_URL` + `TURSO_AUTH_TOKEN` no `.env` **e** nos secrets do GitHub (mesmos nomes) para `monitor.yml` e `celular.yml`.
+
+**Offline / legado:** `TURSO_DATABASE_URL=file:.../data/historico.db` (sem token). O dashboard ainda pode baixar `historico.db` da branch `historico-data`, mas os workflows atuais **não** publicam mais nessa branch.
 
 ### Rodar o dashboard (na raiz do repo)
 ```bash

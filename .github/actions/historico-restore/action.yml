@@ -1,5 +1,5 @@
 name: Restore historico DB
-description: Baixa historico.db da branch historico-data e configura TURSO_DATABASE_URL=file:...
+description: "DEPRECATED — prefer TURSO_* secrets + libsql://. Legacy: baixa historico.db da branch historico-data e configura TURSO_DATABASE_URL=file:..."
 
 runs:
   using: composite

@@ -14,7 +14,8 @@
     "dev": "pnpm --filter dashboard run dev",
     "dash:dev": "pnpm run dev",
     "dash:build": "pnpm --filter dashboard build",
-    "dash:start": "pnpm --filter dashboard start"
+    "dash:start": "pnpm --filter dashboard start",
+    "db:migrate-turso": "ts-node scripts/migrate-historico-to-turso.ts"
   },
   "keywords": [
     "price-tracker",

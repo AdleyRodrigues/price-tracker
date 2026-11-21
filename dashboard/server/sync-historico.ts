@@ -61,14 +61,39 @@ function remoteDbUrlForSha(sha: string): string {
   return `https://raw.githubusercontent.com/${REPO}/${sha}/${FILE}`;
 }
 
+/** Substitui o SQLite no disco. No Windows o rename falha se o arquivo estiver aberto. */
+function replaceDbFile(tmp: string, dest: string): void {
+  try {
+    fs.renameSync(tmp, dest);
+    return;
+  } catch {
+    // Windows: dest pode existir e estar travado — tenta sobrescrever após close do client
+  }
+  try {
+    if (fs.existsSync(dest)) fs.unlinkSync(dest);
+    fs.renameSync(tmp, dest);
+    return;
+  } catch {
+    fs.copyFileSync(tmp, dest);
+    try {
+      fs.unlinkSync(tmp);
+    } catch {
+      /* ignore */
+    }
+  }
+}
+
 /**
  * Baixa historico.db da branch historico-data (Actions) para o SQLite local.
  *
  * Defina HISTORICO_SKIP_REMOTE_SYNC=1 para NÃO sobrescrever o SQLite local
  * (útil após `pnpm start` / scrape local com Acer/Lenovo/Avell).
+ *
+ * `beforeReplace`: feche o client libSQL/SQLite antes de trocar o arquivo (obrigatório no Windows).
  */
 export async function syncHistoricoFromRemote(opts?: {
   force?: boolean;
+  beforeReplace?: () => void;
 }): Promise<{ updated: boolean; reason: string; remoteAt?: string }> {
   const skip =
     /^(1|true|yes|on)$/i.test(process.env.HISTORICO_SKIP_REMOTE_SYNC?.trim() ?? '');
@@ -154,7 +179,20 @@ export async function syncHistoricoFromRemote(opts?: {
   fs.mkdirSync(path.dirname(localPath), { recursive: true });
   const tmp = `${localPath}.download`;
   fs.writeFileSync(tmp, buf);
-  fs.renameSync(tmp, localPath);
+
+  try {
+    opts?.beforeReplace?.();
+    replaceDbFile(tmp, localPath);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    try {
+      fs.unlinkSync(tmp);
+    } catch {
+      /* ignore */
+    }
+    return { updated: false, reason: `replace-falhou:${msg}` };
+  }
+
   fs.writeFileSync(
     metaPath,
     JSON.stringify(

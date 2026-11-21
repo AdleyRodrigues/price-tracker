@@ -6,7 +6,7 @@ import { logger } from 'hono/logger';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { api } from './routes';
-import { ensureHistoricoSynced, isDbConfigured } from './db';
+import { ensureHistoricoSynced, getDbMode, isDbConfigured } from './db';
 import { getLastHistoricoSyncIso } from './sync-historico';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -23,7 +23,7 @@ app.use(
   })
 );
 
-// Antes de qualquer leitura, tenta puxar o DB publicado pelos Actions.
+// Modo file: puxa historico.db da branch (legado). Modo turso: no-op.
 app.use('/api/*', async (c, next) => {
   try {
     await ensureHistoricoSynced(false);
@@ -36,6 +36,7 @@ app.use('/api/*', async (c, next) => {
 
 app.get('/api/sync-status', (c) =>
   c.json({
+    mode: getDbMode(),
     lastSyncIso: getLastHistoricoSyncIso(),
     dbConfigured: isDbConfigured(),
     skipRemoteSync: /^(1|true|yes|on)$/i.test(
@@ -47,9 +48,20 @@ app.get('/api/sync-status', (c) =>
 /** Força re-download do historico.db (útil após Actions publicar). */
 app.post('/api/sync-historico', async (c) => {
   try {
-    await ensureHistoricoSynced(true);
+    const { syncHistoricoFromRemote } = await import('./sync-historico');
+    const { resetDbClient } = await import('./db');
+    const result = await syncHistoricoFromRemote({
+      force: true,
+      beforeReplace: () => resetDbClient(),
+    });
+    if (result.updated) resetDbClient();
+    if (result.reason.startsWith('replace-falhou:') || result.reason.startsWith('get-')) {
+      return c.json({ ok: false, ...result }, 500);
+    }
     return c.json({
       ok: true,
+      mode: getDbMode(),
+      ...result,
       lastSyncIso: getLastHistoricoSyncIso(),
       skipRemoteSync: /^(1|true|yes|on)$/i.test(
         process.env.HISTORICO_SKIP_REMOTE_SYNC?.trim() ?? ''
