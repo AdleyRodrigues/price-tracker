@@ -29,17 +29,8 @@ type MarcaFiltro =
   | 'Alienware'
   | 'Gigabyte';
 
-const MARCAS_PADRAO = ['todas', 'ASUS', 'Avell', 'Lenovo', 'Acer'] as const;
-const MARCAS_COM_PREMIUM = [
-  'todas',
-  'ASUS',
-  'Avell',
-  'Lenovo',
-  'Acer',
-  'Dell',
-  'Alienware',
-  'Gigabyte',
-] as const;
+const MARCAS_COMUNS = ['todas', 'ASUS', 'Avell', 'Lenovo', 'Acer'] as const;
+const MARCAS_PREMIUM = ['Dell', 'Alienware', 'Gigabyte'] as const;
 
 export function OverviewPage() {
   const [params] = useSearchParams();
@@ -236,8 +227,8 @@ export function OverviewPage() {
                 </div>
 
                 <div className="flex flex-wrap items-center gap-1.5">
-                  <div className="inline-flex max-w-full flex-wrap rounded-lg border bg-muted/20 p-0.5 text-xs">
-                    {(mostrarPremium ? MARCAS_COM_PREMIUM : MARCAS_PADRAO).map((m) => (
+                  <div className="inline-flex max-w-full flex-wrap items-center gap-0.5 rounded-lg border bg-muted/20 p-0.5 text-xs">
+                    {MARCAS_COMUNS.map((m) => (
                       <button
                         key={m}
                         type="button"
@@ -250,6 +241,31 @@ export function OverviewPage() {
                         {m === 'todas' ? 'Todas' : m}
                       </button>
                     ))}
+
+                    {mostrarPremium ? (
+                      <>
+                        <span
+                          className="mx-0.5 h-4 w-px shrink-0 bg-amber-500/40"
+                          aria-hidden
+                        />
+                        <span className="px-1 text-[0.6rem] font-bold uppercase tracking-wider text-amber-700/80 dark:text-amber-400/80">
+                          Premium
+                        </span>
+                        {MARCAS_PREMIUM.map((m) => (
+                          <button
+                            key={m}
+                            type="button"
+                            onClick={() => setMarcaFiltro(m)}
+                            className={`rounded border px-2.5 py-1 font-semibold transition ${marcaFiltro === m
+                              ? 'border-amber-600 bg-amber-500 text-amber-950 shadow-sm'
+                              : 'border-amber-500/35 bg-amber-500/10 text-amber-900 hover:bg-amber-500/20 dark:text-amber-200'
+                              }`}
+                          >
+                            {m}
+                          </button>
+                        ))}
+                      </>
+                    ) : null}
                   </div>
 
                   <button
@@ -271,12 +287,12 @@ export function OverviewPage() {
                         return next;
                       });
                     }}
-                    className={`rounded-lg border px-2.5 py-1 text-xs font-medium transition ${mostrarPremium
-                      ? 'border-amber-600/50 bg-amber-500/15 text-amber-900 shadow-sm dark:text-amber-200'
-                      : 'border-border bg-background text-muted-foreground hover:text-foreground'
+                    className={`rounded-lg border px-2.5 py-1 text-xs font-semibold transition ${mostrarPremium
+                      ? 'border-amber-600/60 bg-amber-500/20 text-amber-950 shadow-sm ring-1 ring-amber-500/30 dark:text-amber-100'
+                      : 'border-border bg-background text-muted-foreground hover:border-amber-500/40 hover:text-amber-900 dark:hover:text-amber-200'
                       }`}
                   >
-                    Premium / Fora do Orçamento
+                    {mostrarPremium ? '★ Premium ativo' : 'Premium / Fora do Orçamento'}
                   </button>
                   {!mostrarPremium ? (
                     <button

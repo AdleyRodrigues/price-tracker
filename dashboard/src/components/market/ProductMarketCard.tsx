@@ -2,7 +2,7 @@ import { memo, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowUpRight, ChevronRight, ExternalLink, LineChart } from 'lucide-react';
 import { ProductSparkline } from '@/components/charts/ProductSparkline';
-import { ProductHistoryModal } from '@/components/market/ProductHistoryModal';
+import { ProductDetailModal } from '@/components/market/ProductDetailModal';
 import { Badge } from '@/components/ui/badge';
 import { isRealUrl } from '@/lib/api';
 import { formatBRL, formatDateShort, formatDateTime, formatPct } from '@/lib/format';
@@ -233,7 +233,7 @@ export const ProductMarketCard = memo(function ProductMarketCard({
         </button>
       </div>
 
-      <ProductHistoryModal
+      <ProductDetailModal
         open={historicoAberto}
         onOpenChange={setHistoricoAberto}
         produtoChave={produtoChave}

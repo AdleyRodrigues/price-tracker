@@ -30,7 +30,7 @@ export function ProductHistoryChart({
 }: Props) {
   if (serie.length === 0) {
     return (
-      <p className="flex h-64 items-center justify-center text-sm text-muted-foreground">
+      <p className="flex h-72 items-center justify-center text-sm text-muted-foreground">
         Sem pontos de preço neste intervalo.
       </p>
     );
@@ -52,7 +52,7 @@ export function ProductHistoryChart({
   const ultimo = data[data.length - 1]!;
 
   return (
-    <div className="h-64 w-full sm:h-72">
+    <div className="h-72 w-full sm:h-80">
       <ResponsiveContainer width="100%" height="100%">
         <LineChart data={data} margin={{ top: 16, right: 12, left: 4, bottom: 4 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.6} />
