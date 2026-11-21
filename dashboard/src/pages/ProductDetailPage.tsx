@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
-import { motion } from 'framer-motion';
 import { ArrowLeft, ExternalLink } from 'lucide-react';
 import {
   daysAgoIso,
@@ -92,11 +91,7 @@ export function ProductDetailPage() {
 
   return (
     <div className="space-y-6">
-      <motion.div
-        className="market-panel sticky top-3 z-20 space-y-4 p-4 backdrop-blur-md sm:p-5"
-        initial={{ opacity: 0, y: -8 }}
-        animate={{ opacity: 1, y: 0 }}
-      >
+      <div className="market-panel sticky top-3 z-20 space-y-4 p-4 sm:p-5">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div className="space-y-2">
             <Button asChild variant="ghost" size="sm" className="-ml-2 w-fit">
@@ -154,7 +149,7 @@ export function ProductDetailPage() {
             onChartModeChange={setChartMode}
           />
         </div>
-      </motion.div>
+      </div>
 
       {error ? (
         <div className="market-panel border-destructive/30 p-4 text-sm text-destructive">{error}</div>

@@ -130,11 +130,11 @@ describe('promobit scraper', () => {
       expect(mapearJsonPromobit(item)).toBeNull();
     });
 
-    it('rejeita oferta de outra marca (ex: Lenovo LOQ)', () => {
+    it('rejeita oferta de marca não permitida (ex: HP Victus)', () => {
       const item: PromobitOffer = {
-        offer_title: 'Notebook Gamer Lenovo LOQ 16" RTX 4060 16GB',
+        offer_title: 'Notebook Gamer HP Victus 16" RTX 4060 16GB',
         offer_price: 5200.0,
-        offer_slug: 'slug-lenovo',
+        offer_slug: 'slug-hp',
         offer_status_name: 'APPROVED',
       };
       expect(mapearJsonPromobit(item)).toBeNull();

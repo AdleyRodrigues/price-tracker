@@ -5,6 +5,7 @@ import { podio } from '../domain/ranking';
 import { formatBRL } from '../lib/preco';
 import { Oferta } from '../types/oferta';
 import { extrairHardware, formatarBadgeHardware } from '../domain/hardware';
+import { obterPerfilChassi } from '../domain/hardware-perfis';
 
 export function corDoVencedor(loja: string): number {
   const nome = loja.toLowerCase();
@@ -24,6 +25,7 @@ export function formatarItemField(o: Oferta, index: number): { name: string; val
   const medalhas = ['🥇 1º', '🥈 2º', '🥉 3º', '🎖️ 4º', '🎖️ 5º', '6º', '7º', '8º', '9º', '10º'];
   const freteTxt = o.frete === 0 ? 'frete grátis' : `frete ${formatBRL(o.frete)}`;
   const badgeHw = formatarBadgeHardware(o.titulo);
+  const chassi = obterPerfilChassi(o.titulo);
 
   let linhas: string[] = [
     `${o.titulo}`,
@@ -31,6 +33,30 @@ export function formatarItemField(o: Oferta, index: number): { name: string; val
 
   if (badgeHw) {
     linhas.push(badgeHw);
+  }
+
+  // TGP & HDMI Badge
+  const tgpTxt = chassi.categoriaTgp === 'full_power'
+    ? `⚡ **TGP:** \`${chassi.tgpWatts}W Full Power\``
+    : chassi.categoriaTgp === 'balanceado'
+      ? `⚡ **TGP:** \`${chassi.tgpWatts}W Balanceado\``
+      : `⚠️ **TGP:** \`${chassi.tgpWatts}W Slim Reduzido\``;
+  const hdmiTxt = chassi.suporta4k120Hz
+    ? `📺 **HDMI:** \`${chassi.hdmiVersao} (4K 120Hz)\``
+    : `📺 **HDMI:** \`${chassi.hdmiVersao} (4K 60Hz)\``;
+  linhas.push(`${tgpTxt} | ${hdmiTxt}`);
+
+  // Alerta 8GB RAM (monitora preço, mas marca upgrade) ou TGP Slim
+  const hw = extrairHardware(o.titulo);
+  if (hw.ram && hw.ram.startsWith('8')) {
+    linhas.push(
+      '🔴 **[UPGRADE OBRIGATÓRIO]** 8 GB RAM — para Docker + 4K, some ~R$ 200 de um pente SODIMM (16 GB+).'
+    );
+  }
+  if (chassi.categoriaTgp === 'slim_reduzido' || chassi.tgpWatts < 100) {
+    linhas.push(
+      `⚠️ *TGP ${chassi.tgpWatts}W abaixo de 100W — fora da lista principal “Aprovados 4K”; útil só como oportunidade.*`
+    );
   }
 
   linhas.push(`💵 À vista: ${formatBRL(o.precoAVista)} + ${freteTxt} = **Total: ${formatBRL(o.precoTotal)}**`);
@@ -76,18 +102,18 @@ export function montarPayloadDiscord(
   const fields = lugares.map((o, i) => formatarItemField(o, i));
   const menorPrecoEfetivo = melhor.precoComCupom ?? melhor.precoTotal;
   const ehAlertaCritico = menorPrecoEfetivo <= THRESHOLD_ALERTA_CRITICO;
-  const mencao = ehAlertaCritico ? `<@${userId}> 🚨 **OPORTUNIDADE ASUS 16:10 ABAIXO DE ${formatBRL(THRESHOLD_ALERTA_CRITICO)}!**\n` : '';
+  const mencao = ehAlertaCritico ? `<@${userId}> 🚨 **OPORTUNIDADE NOTEBOOK 4K ABAIXO DE ${formatBRL(THRESHOLD_ALERTA_CRITICO)}!**\n` : '';
 
   return {
-    content: `${mencao}Pódio atualizado (Top ${lugares.length}) — ASUS 16:10 (RTX 4060 / 5050 / 5060).`,
+    content: `${mencao}Pódio atualizado (Top ${lugares.length}) — Notebooks Gamer 4K TV (RTX 5060 / 5050 / 4060 — até R$ 9.000).`,
     embeds: [
       {
-        title: '💻 Monitor ASUS 16:10 (RTX 4060 / 5050 / 5060)',
+        title: '💻 Monitor Notebooks Gamer 4K TV (RTX 5060 / 5050 / 4060)',
         url: melhor.url,
         description:
-          `Comparativo Notebooks ASUS 16:10 (Top ${lugares.length}) para o CEP **${cep}**.\n` +
+          `Comparativo Notebooks Gamer 4K TV (Top ${lugares.length}) para o CEP **${cep}**.\n` +
           `Melhor oferta: **${melhor.loja}** por **${formatBRL(menorPrecoEfetivo)}**\n` +
-          `Fontes em paralelo: Amazon, Loja Oficial ASUS, Mercado Livre, Qual Notebook Comprar, KaBuM!, Magalu, Shopee e Promobit.\n\n` +
+          `Modelos monitorados: ASUS TUF (F16/A16), Avell (Storm 560/ION A70), Lenovo LOQ, Acer Nitro V16 e ASUS V16.\n\n` +
           `${melhor.titulo}`,
         color: corDoVencedor(melhor.loja),
         fields,

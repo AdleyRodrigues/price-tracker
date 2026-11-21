@@ -1,4 +1,3 @@
-import { motion } from 'framer-motion';
 import {
   Area,
   Bar,
@@ -24,12 +23,7 @@ type Props = {
 
 export function PriceTheaterChart({ modo, serie, seriePorLoja, candles }: Props) {
   return (
-    <motion.section
-      className="market-panel overflow-hidden p-4 sm:p-6"
-      initial={{ opacity: 0, y: 16 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-    >
+    <section className="market-panel overflow-hidden p-4 sm:p-6">
       <div className="mb-4">
         <p className="text-[0.7rem] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
           Price theater
@@ -176,6 +170,6 @@ export function PriceTheaterChart({ modo, serie, seriePorLoja, candles }: Props)
           </ResponsiveContainer>
         )}
       </div>
-    </motion.section>
+    </section>
   );
 }

@@ -1,5 +1,6 @@
 /**
- * Remove snapshots de notebooks fora do escopo (G16, M16, V16, etc.).
+ * Remove snapshots de notebooks fora do escopo (ROG Strix / G16 / M16).
+ * NÃO remove ASUS Gaming V16 (V3607) — esse modelo continua monitorado como oportunidade.
  */
 import dotenv from 'dotenv';
 dotenv.config();
@@ -17,23 +18,21 @@ async function main() {
     modulo = 'notebooks' AND (
       produto_chave LIKE 'g16%'
       OR produto_chave LIKE 'm16%'
-      OR produto_chave LIKE 'v16%'
       OR produto_chave LIKE 'g614%'
+      OR produto_chave LIKE 'g615%'
       OR produto_chave LIKE 'g634%'
+      OR produto_chave LIKE 'g814%'
       OR produto_chave LIKE 'gu604%'
       OR produto_chave LIKE 'gu605%'
+      OR produto_chave LIKE 'gu606%'
       OR lower(titulo) LIKE '% g16 %'
       OR lower(titulo) LIKE '%g16,%'
       OR lower(titulo) LIKE '% m16 %'
-      OR lower(titulo) LIKE '%strix g16%'
+      OR lower(titulo) LIKE '%strix%'
+      OR lower(titulo) LIKE '%rog strix%'
+      OR lower(titulo) LIKE '%zephyrus g16%'
       OR lower(titulo) LIKE '%gaming g16%'
       OR lower(titulo) LIKE '%gaming m16%'
-      OR lower(titulo) LIKE '% v16 %'
-      OR lower(titulo) LIKE '%v16,%'
-      OR lower(titulo) LIKE '%gaming v16%'
-      OR lower(titulo) LIKE '%gamer v16%'
-      OR lower(titulo) LIKE '% rp213 %'
-      OR lower(titulo) LIKE '%v3607%'
     )
   `;
 

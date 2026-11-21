@@ -18,16 +18,57 @@ const ASUS_PART_NUMBER = /\b([A-Z]{2}\d{3}[A-Z]{2,5})(?:-[A-Z]{0,4}\d{0,5})?\b/i
 /** ASIN Amazon típico — não é modelo de notebook. */
 const AMAZON_ASIN = /^B0[A-Z0-9]{8}$/i;
 
-/** Séries permitidas no histórico/dash: só TUF F16 e A16. */
-const SERIE_NOTEBOOK = /\b(f16|a16|fx608|fx607|fa607)\b/i;
+/**
+ * Séries reconhecidas no histórico: TUF F16/A16, Avell, LOQ, Nitro, V16,
+ * Dell G15/G16, Alienware m16/x16, Gigabyte AORUS/G6.
+ */
+const SERIE_NOTEBOOK =
+  /\b(f16|a16|fx608|fx607|fa607|fa608|storm|ion|loq|anv16|nitro|v16|v3607|g15|g16|m16|x16|aorus|g6kf|g6)\b/i;
 
-/** Fora do escopo: V16, G16, M16 e afins. */
-const SERIE_FORA_ESCOPO =
-  /\bv16\b|\bv3607\b|\brp213\b|gaming\s*v16|\bg16\b|\bm16\b|\bg614\b|\bg634\b|\bgu604\b|\bgu605\b|rog\s*strix\s*g16|tuf\s*gaming\s*g16|tuf\s*gaming\s*m16/i;
+/**
+ * Fora do escopo = ASUS premium (ROG Strix, Zephyrus, TUF G16/M16) e PNs associados.
+ * NÃO bloqueia Dell G16 / Alienware m16 (coletados como premium).
+ */
+export const SERIE_FORA_ESCOPO =
+  /(?:\brog\s*strix\b|\bstrix\s*g\s*16\b|\bzephyrus\b|\btuf\s*gaming\s*[gm]\s*16\b|\bg614\b|\bg615\b|\bg634\b|\bg814\b|\bgu604\b|\bgu605\b|\bgu606\b)/i;
+
+/** Chaves ASUS-style (sem prefixo dell_/alienware_) que nunca entram. */
+export const CHAVE_FORA_ESCOPO =
+  /^(g16|m16|g614|g615|g634|g814|gu604|gu605|gu606|gx|gz)([_-]|$)/i;
 
 /** Part numbers ASUS que não são F16/A16. */
 const PN_FORA_ESCOPO = /^(g6|gu|m6|gx|gz)/i;
-const PN_F16_A16 = /^(fx608|fx607|fa607)/i;
+const PN_F16_A16 = /^(fx608|fx607|fa607|fa608)/i;
+
+function ehDellAlienOuGigabyte(texto: string, chave?: string | null): boolean {
+  if (/^(dell_|alienware_|gigabyte_)/i.test(chave ?? '')) return true;
+  return /\b(dell|alienware|gigabyte|aorus)\b/i.test(texto);
+}
+
+/** True se título/SKU/chave for ASUS premium fora do monitoramento. */
+export function ehSerieForaEscopo(texto: string, chave?: string | null): boolean {
+  const t = `${texto} ${chave ?? ''}`.trim();
+  if (!t) return false;
+  if (chave && CHAVE_FORA_ESCOPO.test(chave.trim())) return true;
+  if (SERIE_FORA_ESCOPO.test(t)) return true;
+  // PN solto no texto (G615JM, GU605…)
+  if (/\b(g6(?:14|15|34)|g814|gu60[456])[a-z0-9]*\b/i.test(t)) return true;
+  // G16/M16 só bloqueia no contexto ASUS (não Dell/Alienware)
+  if (
+    !ehDellAlienOuGigabyte(t, chave) &&
+    /\b(?:asus|rog|tuf)\b/i.test(t) &&
+    /\b[gm]\s*16\b/i.test(t)
+  ) {
+    return true;
+  }
+  return false;
+}
+
+/** Sufixo de GPU para chaves premium (ex.: rtx4060). */
+function gpuChaveDeTexto(texto: string): string {
+  const m = texto.match(/\b(?:rtx\s*)?(4060|5050|5060)\b/i);
+  return m?.[1] ? `rtx${m[1]}` : 'gpu';
+}
 
 /** Sufixos comerciais do F16 que às vezes aparecem sem o PN completo. */
 const F16_SUFFIX_TO_PN: Record<string, string> = {
@@ -77,38 +118,101 @@ export function inferirSkuTufF16(titulo: string): string | null {
   return null;
 }
 
-function ehSerieF16OuA16(texto: string, chave?: string | null): boolean {
+function ehSeriePermitida(texto: string, chave?: string | null): boolean {
+  if (ehSerieForaEscopo(texto, chave)) return false;
   if (chave) {
-    if (PN_FORA_ESCOPO.test(chave) || /^(g16|m16|v16)_/i.test(chave)) return false;
-    if (PN_F16_A16.test(chave) || /^(f16|a16)_/i.test(chave)) return true;
-    // Part number ASUS genérico que não é da família F16/A16
-    if (/^[a-z]{2}\d{3}[a-z]{2,5}$/i.test(chave)) return false;
+    if (PN_FORA_ESCOPO.test(chave) && !/^gigabyte_/i.test(chave)) return false;
+    if (
+      PN_F16_A16.test(chave) ||
+      /^(f16|a16|avell|loq|anv16|asus_v3607|dell_|alienware_|gigabyte_)/i.test(chave)
+    ) {
+      return true;
+    }
   }
-  if (SERIE_FORA_ESCOPO.test(texto)) return false;
-  return /\b(f16|a16|fx608|fx607|fa607)\b/i.test(texto) || /tuf\s+gaming\s+(f16|a16)\b/i.test(texto);
+  return (
+    /\b(f16|a16|fx608|fx607|fa607|fa608|storm|ion|loq|anv16|nitro|v16|v3607)\b/i.test(texto) ||
+    /tuf\s+gaming\s+(f16|a16)\b/i.test(texto) ||
+    /avell\s+(storm|ion)/i.test(texto) ||
+    /lenovo\s+loq/i.test(texto) ||
+    /acer\s+nitro/i.test(texto) ||
+    (/\bdell\b/i.test(texto) && /\bg\s*1[56]\b/i.test(texto)) ||
+    (/alienware/i.test(texto) && /\b[mx]\s*16\b/i.test(texto)) ||
+    (/\b(gigabyte|aorus)\b/i.test(texto) && /\b(aorus\s*16|g6kf|g6)\b/i.test(texto))
+  );
 }
+
+// Retrocompatibilidade
+const ehSerieF16OuA16 = ehSeriePermitida;
 
 /**
  * Chave de histórico por modelo/SKU (1 linha no dash por notebook).
- * Escopo: só TUF F16 e A16.
- * 1) Part number ASUS no título/sku
- * 2) Inferência TUF F16 → FX608JHI/JHR/JMI
- * 3) Ignora ASIN
- * 4) Fallback série+GPU (+RAM quando houver)
+ * Inclui Dell G15/G16, Alienware m16/x16 e Gigabyte AORUS/G6 (premium no dash).
  */
 export function identificarProdutoChaveNotebook(
   titulo: string,
   sku?: string
 ): string | null {
   const texto = `${titulo} ${sku ?? ''}`;
-  if (SERIE_FORA_ESCOPO.test(texto)) return null;
+  if (ehSerieForaEscopo(texto, sku)) return null;
 
+  // 1. Avell Storm 560 / ION A70
+  if (/storm\s*560/i.test(texto)) return 'avell_storm560_rtx5060';
+  if (/ion\s*a70/i.test(texto)) return 'avell_iona70_rtx5060';
+
+  // 2. Lenovo LOQ 15 / 16
+  if (/loq/i.test(texto)) {
+    const pnLoq = texto.match(/\b(15[a-z]{3}\d|16[a-z]{3}\d)\b/i)?.[1]?.toLowerCase();
+    if (pnLoq) return `loq_${pnLoq}`;
+    if (/\bloq\s*15\b|\b15(?:\.6)?\s*(?:"|pol)/i.test(texto)) return 'loq_15_rtx5060';
+    if (/\bloq\s*16\b|\b16(?:\.0)?\s*(?:"|pol)/i.test(texto)) return 'loq_16_rtx5060';
+    return 'loq_15_rtx5060';
+  }
+
+  // 3. Acer Nitro V16
+  if (/nitro\s*v16|anv16/i.test(texto)) {
+    const pnNitro = texto.match(/\b(anv16-\d{2}[a-z]?)\b/i)?.[1]?.toLowerCase().replace('-', '_');
+    if (pnNitro) return pnNitro;
+    return 'anv16_rtx5060';
+  }
+
+  // 4. Dell G15 / G16
+  if (/\bdell\b/i.test(texto) && /\bg\s*16\b/i.test(texto)) {
+    return `dell_g16_${gpuChaveDeTexto(texto)}`;
+  }
+  if (/\bdell\b/i.test(texto) && /\bg\s*15\b/i.test(texto)) {
+    return `dell_g15_${gpuChaveDeTexto(texto)}`;
+  }
+
+  // 5. Alienware m16 / x16
+  if (/alienware/i.test(texto) && /\bm\s*16\b/i.test(texto)) {
+    return `alienware_m16_${gpuChaveDeTexto(texto)}`;
+  }
+  if (/alienware/i.test(texto) && /\bx\s*16\b/i.test(texto)) {
+    return `alienware_x16_${gpuChaveDeTexto(texto)}`;
+  }
+
+  // 6. Gigabyte AORUS 16 / G6
+  if (/\b(gigabyte|aorus)\b/i.test(texto) && /aorus\s*16/i.test(texto)) {
+    return `gigabyte_aorus16_${gpuChaveDeTexto(texto)}`;
+  }
+  if (/\b(gigabyte|aorus)\b/i.test(texto) && /\bg6(?:kf)?\b/i.test(texto)) {
+    return `gigabyte_g6_${gpuChaveDeTexto(texto)}`;
+  }
+
+  // 7. ASUS Gaming V16 (V3607)
+  if (/v3607vh|gaming\s*v16|\bv16\b/i.test(texto) && !/nitro/i.test(texto)) {
+    return 'asus_v3607_rtx5060';
+  }
+
+  // 5. ASUS TUF Part number no SKU ou título
   let chave: string | null = null;
 
   if (sku && !ehAsinAmazon(sku)) {
-    const doSku = extrairPartNumberAsus(sku) ?? (/^[A-Z]{2}\d{3}[A-Z]{2,5}$/i.test(sku.trim())
-      ? sku.trim().toLowerCase()
-      : null);
+    const doSku =
+      extrairPartNumberAsus(sku) ??
+      (/^[A-Z]{2}\d{3}[A-Z]{2,5}$/i.test(sku.trim())
+        ? sku.trim().toLowerCase()
+        : null);
     if (doSku) chave = doSku;
   }
 
@@ -127,39 +231,44 @@ export function identificarProdutoChaveNotebook(
     const serie =
       serieRaw === 'fx608' || serieRaw === 'fx607'
         ? 'f16'
-        : serieRaw === 'fa607'
+        : serieRaw === 'fa607' || serieRaw === 'fa608'
           ? 'a16'
           : serieRaw;
     const gpu = hw.gpu?.toLowerCase().replace(/\s+/g, '') ?? null;
     const ram = hw.ram?.match(/\d+/)?.[0] ?? null;
 
     if (!serie && !gpu) return null;
-    if (serie !== 'f16' && serie !== 'a16') return null;
 
-    // Fallback estável: série + GPU + RAM (sem CPU, que fragmentava i5 vs i5-14450hx).
-    chave = [serie, gpu ?? 'gpu', ram ? `${ram}gb` : null].filter(Boolean).join('_');
+    chave = [serie ?? 'notebook', gpu ?? 'gpu', ram ? `${ram}gb` : null].filter(Boolean).join('_');
   }
 
-  if (!ehSerieF16OuA16(texto, chave)) return null;
+  if (ehSerieForaEscopo(texto, chave) || !ehSeriePermitida(texto, chave)) return null;
   return chave;
 }
 
-/** Label amigável: SKU/série · CPU · RAM · GPU. */
+/** Label amigável: nome comercial · CPU · RAM · GPU (nunca part number tipo FX608…). */
 export function labelProdutoNotebook(chave: string, tituloHint?: string): string {
-  const pn = /^[a-z]{2}\d{3}[a-z]{2,5}$/i.test(chave) ? chave.toUpperCase() : null;
+  const nome = nomeSerieNotebook(chave, tituloHint);
 
   if (!tituloHint) {
-    if (pn) return `${pn} · ${formatarRam(resolverRamNotebook({ chave })).replace(' RAM', '')}`;
-    return chave
-      .split('_')
-      .map((p) => p.toUpperCase())
-      .join(' · ');
+    const ram = formatarRam(resolverRamNotebook({ chave })).replace(' RAM', '');
+    if (chave === 'avell_storm560_rtx5060') return `${nome} · 16 GB · RTX 5060`;
+    if (chave === 'avell_iona70_rtx5060') return `${nome} · 16 GB · RTX 5060`;
+    if (chave.startsWith('loq_')) return `${nome} · 16 GB · RTX 5060`;
+    if (chave.startsWith('anv16')) return `${nome} · 16 GB · RTX 5060`;
+    if (chave.startsWith('asus_v3607')) return `${nome} · 16 GB · RTX 5060`;
+    if (/^(dell_|alienware_|gigabyte_)/i.test(chave)) {
+      const gpuChave = chave.match(/rtx(\d{4})/i)?.[1];
+      const gpu = gpuChave ? `RTX ${gpuChave}` : null;
+      return [nome, ram, gpu].filter(Boolean).join(' · ');
+    }
+    const gpuChave = chave.match(/rtx\s*(\d{4})/i)?.[1];
+    const gpu = gpuChave ? `RTX ${gpuChave}` : null;
+    return [nome, ram, gpu].filter(Boolean).join(' · ');
   }
 
   const hw = extrairHardware(tituloHint);
-  const serie = tituloHint.match(SERIE_NOTEBOOK)?.[1]?.toUpperCase();
-  const modelo = pn ?? serie ?? chave.split('_')[0]?.toUpperCase() ?? chave.toUpperCase();
-  const partes = [modelo];
+  const partes = [nome];
   if (hw.cpu) partes.push(hw.cpu);
   partes.push(formatarRam(resolverRamNotebook({ titulo: tituloHint, chave })).replace(' RAM', ''));
   if (hw.gpu) partes.push(hw.gpu);
@@ -169,9 +278,25 @@ export function labelProdutoNotebook(chave: string, tituloHint?: string): string
 /** Nome comercial da série a partir da chave/título (sem part number). */
 function nomeSerieNotebook(chave: string, tituloHint?: string): string {
   const texto = `${chave} ${tituloHint ?? ''}`;
+  if (/storm\s*560/i.test(texto)) return 'Avell Storm 560';
+  if (/ion\s*a70/i.test(texto)) return 'Avell ION A70';
+  if (/loq/i.test(texto)) return 'Lenovo LOQ';
+  if (/nitro\s*v16|anv16/i.test(texto)) return 'Acer Nitro V16';
+  if (/dell_g16|dell\s+g\s*16/i.test(texto)) return 'Dell G16';
+  if (/dell_g15|dell\s+g\s*15/i.test(texto)) return 'Dell G15';
+  if (/alienware_m16|alienware\s+m\s*16/i.test(texto)) return 'Alienware m16';
+  if (/alienware_x16|alienware\s+x\s*16/i.test(texto)) return 'Alienware x16';
+  if (/aorus16|aorus\s*16/i.test(texto)) return 'Gigabyte AORUS 16';
+  if (
+    /^gigabyte_g6/i.test(chave) ||
+    (/\b(gigabyte|aorus)\b/i.test(texto) && /\bg6(?:kf)?\b/i.test(texto))
+  ) {
+    return 'Gigabyte G6';
+  }
+  if (/v16|v3607/i.test(texto)) return 'ASUS Gaming V16';
   if (/^(fx608|fx607)|^f16_/i.test(chave) || /\b(f16|fx608|fx607)\b/i.test(texto)) return 'ASUS TUF Gaming F16';
   if (/^(fa607|fa608)|^a16_/i.test(chave) || /\b(a16|fa607|fa608)\b/i.test(texto)) return 'ASUS TUF Gaming A16';
-  return 'Notebook ASUS';
+  return 'Notebook Gamer';
 }
 
 /**
@@ -196,6 +321,9 @@ export function tituloBloqueado(titulo: string, sku?: string): boolean {
   if (!titulo) return true;
   const textoCompleto = `${titulo} ${sku ?? ''}`;
 
+  // 0. ASUS premium (ROG Strix / Zephyrus / TUF G16) — Dell/Alienware passam
+  if (ehSerieForaEscopo(textoCompleto, sku)) return true;
+
   // 1. Bloqueios explícitos (desktop, pc gamer, placa de video, gpu, mesa, suporte, cooler, gabinete, fonte, monitor, teclado, usado)
   // Ignora menções legítimas a teclado embutido de notebook (ex: "teclado iluminado")
   const textoParaBloqueio = textoCompleto.replace(/teclado\s+(?:iluminado|retroiluminado|rgb|abnt\d?|chiclet)/gi, '');
@@ -204,7 +332,7 @@ export function tituloBloqueado(titulo: string, sku?: string): boolean {
   // 2. Exige obrigatoriamente que seja notebook ou laptop
   if (!VALIDA_NOTEBOOK.test(textoCompleto)) return true;
 
-  // 3. Exige obrigatoriamente que seja da marca ASUS
+  // 3. Marca permitida (ASUS / Avell / Lenovo / Acer / Dell / Alienware / Gigabyte)
   if (!VALIDA_MARCA_ASUS.test(textoCompleto)) return true;
 
   // 4. Exige obrigatoriamente que contenha GPU RTX 4060, 5050 ou 5060

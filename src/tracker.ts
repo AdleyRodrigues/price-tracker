@@ -4,6 +4,7 @@ dotenv.config();
 import './config/env';
 import { coletarOfertas } from './services/collector';
 import { enriquecerRamNotebooks } from './services/enriquecer-ram';
+import { enriquecerOfertasComCupons } from './services/cupons';
 import { enviarParaDiscord } from './services/discord';
 import { salvarHistoricoNotebooks } from './services/historico';
 import { ordenarPorTotal } from './domain/ranking';
@@ -14,7 +15,10 @@ async function main(): Promise<void> {
   const brutas = await coletarOfertas();
 
   // Garante RAM em todas as ofertas (título → página → ficha técnica → estimativa).
-  const coletadas = await enriquecerRamNotebooks(brutas);
+  const comRam = await enriquecerRamNotebooks(brutas);
+
+  // CupomDescontos (cache 45 min) — aplica melhor cupom antes do histórico/Discord.
+  const coletadas = await enriquecerOfertasComCupons(comRam);
 
   // Histórico aditivo: falha silenciosa e não bloqueia o Discord.
   await salvarHistoricoNotebooks(coletadas);

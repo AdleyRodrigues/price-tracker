@@ -65,17 +65,17 @@ describe('produto chave notebook', () => {
     ).toBe('fx608jhi');
   });
 
-  it('ignora ASUS V16 / G16 / M16 (fora do escopo)', () => {
+  it('identifica ASUS Gaming V16 e ignora G16 / M16 (fora do escopo)', () => {
     expect(
       identificarProdutoChaveNotebook(
         'Notebook ASUS Gaming V16, Intel Core 5, NVIDIA RTX 5050, 8GB, 512GB SSD'
       )
-    ).toBeNull();
+    ).toBe('asus_v3607_rtx5060');
     expect(
       identificarProdutoChaveNotebook(
         'Notebook Asus Gamer V16 Rp213 RTX 5050 Core 5 8GB Ram'
       )
-    ).toBeNull();
+    ).toBe('asus_v3607_rtx5060');
     expect(
       identificarProdutoChaveNotebook(
         'Notebook ASUS ROG Strix G16 RTX 5060 Core Ultra 9 32GB RAM'
@@ -84,6 +84,11 @@ describe('produto chave notebook', () => {
     expect(
       identificarProdutoChaveNotebook(
         'Notebook ASUS TUF Gaming G16 RTX 5060 16GB'
+      )
+    ).toBeNull();
+    expect(
+      identificarProdutoChaveNotebook(
+        'Notebook Gamer Asus Rog Strix G16, Core Ultra 9, Nvidia Rtx™ 5060, 32 Gb Ram, 1.0 Tb'
       )
     ).toBeNull();
   });
@@ -96,19 +101,94 @@ describe('produto chave notebook', () => {
     ).toBe('fa607nv');
   });
 
+  it('identifica e normaliza novas marcas: Avell, Lenovo LOQ, Acer Nitro V16 e ASUS V16', () => {
+    // Avell Storm 560 & ION A70
+    expect(
+      identificarProdutoChaveNotebook(
+        'Notebook Gamer Avell Storm 560 Intel Core i7-14700HX RTX 5060 16GB 1TB SSD 16"'
+      )
+    ).toBe('avell_storm560_rtx5060');
+    expect(
+      identificarProdutoChaveNotebook(
+        'Notebook Avell ION A70 AMD Ryzen 7-8845HS RTX 5060 16GB 16" WUXGA'
+      )
+    ).toBe('avell_iona70_rtx5060');
+
+    // Lenovo LOQ
+    expect(
+      identificarProdutoChaveNotebook(
+        'Notebook Gamer Lenovo LOQ 15IRX9 Intel Core i5 RTX 5060 16GB'
+      )
+    ).toBe('loq_15irx9');
+    expect(
+      identificarProdutoChaveNotebook(
+        'Notebook Gamer Lenovo LOQ 15 Intel Core i5 RTX 5060 16GB 512GB'
+      )
+    ).toBe('loq_15_rtx5060');
+
+    // Acer Nitro V16
+    expect(
+      identificarProdutoChaveNotebook(
+        'Notebook Gamer Acer Nitro V16 ANV16-41 AMD Ryzen 7 RTX 5060 16GB 16"'
+      )
+    ).toBe('anv16_41');
+    expect(
+      identificarProdutoChaveNotebook(
+        'Notebook Gamer Acer Nitro V16 Ryzen 7 RTX 5060 16GB SSD 512GB'
+      )
+    ).toBe('anv16_rtx5060');
+
+    // ASUS Gaming V16
+    expect(
+      identificarProdutoChaveNotebook(
+        'Notebook ASUS Gaming V16 V3607VH RTX 5060 Intel Core 5 16GB 512GB SSD'
+      )
+    ).toBe('asus_v3607_rtx5060');
+  });
+
+  it('gera labels informativos para as novas famílias com hint de título', () => {
+    expect(
+      labelProdutoNotebook(
+        'avell_storm560_rtx5060',
+        'Notebook Gamer Avell Storm 560 Intel Core i7-14700HX 16GB RAM RTX 5060 16"'
+      )
+    ).toBe('Avell Storm 560 · Core i7-14700HX · 16 GB · RTX 5060');
+
+    expect(
+      labelProdutoNotebook(
+        'loq_15_rtx5060',
+        'Notebook Gamer Lenovo LOQ 15 Intel Core i5 16GB RAM RTX 5060 15.6"'
+      )
+    ).toBe('Lenovo LOQ · Core i5 · 16 GB · RTX 5060');
+
+    expect(
+      labelProdutoNotebook(
+        'anv16_41',
+        'Notebook Gamer Acer Nitro V16 ANV16-41 AMD Ryzen 7 16GB RAM RTX 5060'
+      )
+    ).toBe('Acer Nitro V16 · Ryzen 7 · 16 GB · RTX 5060');
+  });
+
   it('retorna null quando não há série nem GPU mapeável', () => {
     expect(identificarProdutoChaveNotebook('Produto genérico sem specs')).toBeNull();
   });
 
-  it('monta label com CPU, RAM e GPU quando há hint de título', () => {
+  it('monta label com nome comercial (não part number), CPU, RAM e GPU', () => {
     expect(
       labelProdutoNotebook(
         'fx608jhi',
         'Notebook ASUS TUF Gaming F16 FX608JHI Intel Core i5-14450HX 16GB RAM RTX 5050 16:10'
       )
-    ).toBe('FX608JHI · Core i5-14450HX · 16 GB · RTX 5050');
+    ).toBe('ASUS TUF Gaming F16 · Core i5-14450HX · 16 GB · RTX 5050');
 
-    // Sem título: RAM vem da ficha técnica do part number (nunca fica sem RAM)
-    expect(labelProdutoNotebook('fx608jhr')).toBe('FX608JHR · 8 GB (ficha técnica)');
+    expect(
+      labelProdutoNotebook(
+        'fx608jmi',
+        'Notebook ASUS TUF Gaming F16 FX608JMI Intel Core i5-14450HX 16GB RAM RTX 5060'
+      )
+    ).toBe('ASUS TUF Gaming F16 · Core i5-14450HX · 16 GB · RTX 5060');
+
+    // Sem título: nome da série + RAM da ficha (nunca part number)
+    expect(labelProdutoNotebook('fx608jhr')).toBe('ASUS TUF Gaming F16 · 8 GB (ficha técnica)');
   });
 });

@@ -1,4 +1,3 @@
-import { motion } from 'framer-motion';
 import {
   Bar,
   BarChart,
@@ -9,6 +8,8 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
+import { CompactChartTooltip } from '@/components/charts/CompactChartTooltip';
+import { LazyChartMount } from '@/components/charts/LazyChartMount';
 import { formatPct } from '@/lib/format';
 
 type Props = {
@@ -34,12 +35,7 @@ export function MovementChart({ data }: Props) {
     }));
 
   return (
-    <motion.section
-      className="market-panel p-5"
-      initial={{ opacity: 0, y: 14 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 0.18, duration: 0.45 }}
-    >
+    <section className="market-panel relative overflow-visible p-5 hover:z-30">
       <p className="text-[0.7rem] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
         Movimento
       </p>
@@ -49,10 +45,10 @@ export function MovementChart({ data }: Props) {
       {rows.length === 0 ? (
         <p className="mt-8 text-sm text-muted-foreground">Sem variação calculável ainda.</p>
       ) : (
-        <div className="mt-4 h-56">
-          <ResponsiveContainer width="100%" height="100%">
+        <LazyChartMount className="mt-4 h-56 overflow-visible" minHeight={224}>
+          <ResponsiveContainer width="100%" height="100%" debounce={150}>
             <BarChart data={rows} layout="vertical" margin={{ top: 4, right: 12, left: 8, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#d9dee7" horizontal={false} />
+              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" horizontal={false} />
               <XAxis
                 type="number"
                 tick={{ fontSize: 11, fill: '#5b6472' }}
@@ -69,24 +65,21 @@ export function MovementChart({ data }: Props) {
                 tickLine={false}
               />
               <Tooltip
-                contentStyle={{ borderRadius: 12, border: '1px solid #d9dee7', maxWidth: 360 }}
-                formatter={(value: number, _name, item) => {
-                  const full = (item?.payload as { label?: string } | undefined)?.label;
-                  return [formatPct(value), full ?? 'Δ 7d'];
-                }}
+                content={<CompactChartTooltip metricLabel="Δ 7d" formatValue={(v) => formatPct(v)} />}
+                cursor={{ fill: 'rgba(15, 107, 76, 0.06)' }}
+                wrapperStyle={{ zIndex: 50, outline: 'none' }}
+                allowEscapeViewBox={{ x: true, y: true }}
+                isAnimationActive={false}
               />
-              <Bar dataKey="value" radius={[0, 6, 6, 0]} maxBarSize={28}>
+              <Bar dataKey="value" name="Δ 7d" radius={[0, 6, 6, 0]} maxBarSize={28} isAnimationActive={false}>
                 {rows.map((r) => (
-                  <Cell
-                    key={r.produtoChave}
-                    fill={r.value <= 0 ? '#047857' : '#e11d48'}
-                  />
+                  <Cell key={r.produtoChave} fill={r.value <= 0 ? '#047857' : '#e11d48'} />
                 ))}
               </Bar>
             </BarChart>
           </ResponsiveContainer>
-        </div>
+        </LazyChartMount>
       )}
-    </motion.section>
+    </section>
   );
 }

@@ -1,4 +1,3 @@
-import { motion } from 'framer-motion';
 import { formatBRL } from '@/lib/format';
 
 type Props = {
@@ -16,12 +15,7 @@ export function StoreBattleChart({ stores }: Props) {
   const maxShare = Math.max(...top.map((s) => s.shareMinimos), 1);
 
   return (
-    <motion.section
-      className="market-panel p-5"
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 0.12, duration: 0.45 }}
-    >
+    <section className="market-panel p-5">
       <p className="text-[0.7rem] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
         Store battle
       </p>
@@ -43,11 +37,9 @@ export function StoreBattleChart({ stores }: Props) {
                 </span>
               </div>
               <div className="h-2.5 overflow-hidden rounded-full bg-muted">
-                <motion.div
-                  className="h-full rounded-full bg-primary"
-                  initial={{ width: 0 }}
-                  animate={{ width: `${(s.shareMinimos / maxShare) * 100}%` }}
-                  transition={{ delay: 0.2 + i * 0.05, duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
+                <div
+                  className="h-full rounded-full bg-primary transition-[width] duration-500 ease-out motion-reduce:transition-none"
+                  style={{ width: `${(s.shareMinimos / maxShare) * 100}%` }}
                 />
               </div>
               <p className="mt-1 text-xs text-muted-foreground">
@@ -57,6 +49,6 @@ export function StoreBattleChart({ stores }: Props) {
           ))}
         </ul>
       )}
-    </motion.section>
+    </section>
   );
 }

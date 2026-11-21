@@ -1,4 +1,3 @@
-import { motion } from 'framer-motion';
 import { Lightbulb } from 'lucide-react';
 import type { OverviewInsight } from '@/lib/api';
 import { toneClass } from '@/lib/insights';
@@ -18,17 +17,11 @@ export function InsightRail({ insights }: Props) {
         <h3 className="font-display text-sm font-semibold tracking-tight">Insights</h3>
       </div>
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-        {insights.map((ins, i) => (
-          <motion.article
-            key={ins.id}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 + i * 0.06, duration: 0.4 }}
-            className={cn('rounded-xl border p-4', toneClass(ins.tone))}
-          >
+        {insights.map((ins) => (
+          <article key={ins.id} className={cn('rounded-xl border p-4', toneClass(ins.tone))}>
             <p className="font-display text-sm font-semibold">{ins.title}</p>
             <p className="mt-1 text-sm opacity-80">{ins.detail}</p>
-          </motion.article>
+          </article>
         ))}
       </div>
     </section>

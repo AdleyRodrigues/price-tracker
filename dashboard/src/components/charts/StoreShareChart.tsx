@@ -1,4 +1,3 @@
-import { motion } from 'framer-motion';
 import { formatBRL } from '@/lib/format';
 
 type Props = {
@@ -15,12 +14,7 @@ export function StoreShareChart({ stores }: Props) {
   const max = Math.max(...top.map((s) => s.shareMinimos), 1);
 
   return (
-    <motion.section
-      className="market-panel p-5"
-      initial={{ opacity: 0, y: 14 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 0.22, duration: 0.45 }}
-    >
+    <section className="market-panel relative p-5">
       <p className="text-[0.7rem] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
         Lojas
       </p>
@@ -43,17 +37,15 @@ export function StoreShareChart({ stores }: Props) {
                 </span>
               </div>
               <div className="h-2 overflow-hidden rounded-full bg-muted">
-                <motion.div
-                  className="h-full rounded-full bg-accent"
-                  initial={{ width: 0 }}
-                  animate={{ width: `${(s.shareMinimos / max) * 100}%` }}
-                  transition={{ delay: 0.25 + i * 0.05, duration: 0.5 }}
+                <div
+                  className="h-full rounded-full bg-accent transition-[width] duration-500 ease-out motion-reduce:transition-none"
+                  style={{ width: `${(s.shareMinimos / max) * 100}%` }}
                 />
               </div>
             </li>
           ))}
         </ul>
       )}
-    </motion.section>
+    </section>
   );
 }

@@ -38,32 +38,28 @@
 
   html {
     @apply antialiased;
-    scroll-behavior: smooth;
+    scroll-behavior: auto;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
   }
 
   body {
     @apply min-h-dvh bg-background text-foreground font-sans;
+    /* Fundo sólido — gradientes no body pintam de novo a cada frame de scroll */
     background-color: #f7f8fa;
-    background-image:
-      radial-gradient(ellipse 90% 55% at 8% -8%, rgb(15 107 76 / 0.14), transparent 55%),
-      radial-gradient(ellipse 70% 45% at 96% 0%, rgb(232 145 58 / 0.12), transparent 50%),
-      radial-gradient(ellipse 50% 40% at 70% 100%, rgb(3 105 161 / 0.06), transparent 45%),
-      linear-gradient(180deg, #f7f8fa 0%, #eef1f6 100%);
-    background-attachment: fixed;
-  }
-
-  body::before {
-    content: "";
-    pointer-events: none;
-    position: fixed;
-    inset: 0;
-    z-index: 50;
-    opacity: 0.035;
-    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
   }
 
   #root {
-    @apply relative z-10 min-h-dvh;
+    @apply relative min-h-dvh;
   }
 }
 
@@ -77,9 +73,26 @@
 }
 
 @utility market-panel {
-  border: 1px solid color-mix(in oklab, var(--color-border) 80%, transparent);
-  background: color-mix(in oklab, white 88%, transparent);
-  backdrop-filter: blur(10px);
+  border: 1px solid var(--color-border);
+  background: #ffffff;
   border-radius: var(--radius-lg);
-  box-shadow: 0 1px 0 rgb(11 18 32 / 0.04), 0 18px 40px -28px rgb(11 18 32 / 0.35);
+  /* Sombra leve e barata; sem content-visibility (causava jank no scroll) */
+  box-shadow: 0 1px 2px rgb(11 18 32 / 0.04);
+}
+
+/* Tooltips Recharts: acima dos cards vizinhos, sem clip */
+.recharts-wrapper,
+.recharts-surface {
+  overflow: visible !important;
+}
+
+.recharts-tooltip-wrapper {
+  z-index: 80 !important;
+  pointer-events: none !important;
+}
+
+/* Enquanto o tooltip está visível, sobe o card inteiro no stacking
+   (filhos com z-index não ultrapassam irmãos sem isso). */
+.market-panel:has(.recharts-tooltip-wrapper[style*="visibility: visible"]) {
+  z-index: 30;
 }

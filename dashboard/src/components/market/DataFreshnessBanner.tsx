@@ -1,4 +1,3 @@
-import { motion } from 'framer-motion';
 import { Clock3 } from 'lucide-react';
 import { formatDateTime, formatRelativeTime } from '@/lib/format';
 
@@ -17,12 +16,7 @@ export function DataFreshnessBanner({ atualizadoEm }: Props) {
   }
 
   return (
-    <motion.div
-      className="market-panel flex flex-col gap-1 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4 }}
-    >
+    <div className="market-panel flex flex-col gap-1 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
       <div className="flex items-start gap-3">
         <span className="mt-0.5 rounded-lg bg-primary/10 p-2 text-primary">
           <Clock3 className="h-4 w-4" />
@@ -42,6 +36,6 @@ export function DataFreshnessBanner({ atualizadoEm }: Props) {
       <p className="text-xs text-muted-foreground sm:text-right">
         Timestamp do último snapshot gravado no histórico
       </p>
-    </motion.div>
+    </div>
   );
 }

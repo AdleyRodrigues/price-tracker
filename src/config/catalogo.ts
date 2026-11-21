@@ -39,6 +39,27 @@ export const CATALOGO: ItemCatalogo[] = [
     freteFallback: FRETE_FALLBACK_AMAZON,
   },
   {
+    loja: 'Amazon (Busca Lenovo LOQ RTX)',
+    produto: 'Notebook Lenovo LOQ RTX',
+    url: 'https://www.amazon.com.br/s?k=notebook+lenovo+loq+rtx',
+    parser: 'amazon',
+    freteFallback: FRETE_FALLBACK_AMAZON,
+  },
+  {
+    loja: 'Amazon (Busca Acer Nitro V16)',
+    produto: 'Notebook Acer Nitro V16 RTX',
+    url: 'https://www.amazon.com.br/s?k=notebook+acer+nitro+v16',
+    parser: 'amazon',
+    freteFallback: FRETE_FALLBACK_AMAZON,
+  },
+  {
+    loja: 'Amazon (Busca Avell RTX)',
+    produto: 'Notebook Avell RTX',
+    url: 'https://www.amazon.com.br/s?k=notebook+avell+rtx',
+    parser: 'amazon',
+    freteFallback: FRETE_FALLBACK_AMAZON,
+  },
+  {
     loja: 'Loja Oficial ASUS',
     produto: 'Notebook ASUS TUF Gaming F16 FX608JHI RTX 5050 i5 16GB 512GB 16" 16:10',
     url: 'https://br.store.asus.com/notebook-asus-tuf-gaming-f16-fx608jhi-tu292-jaeger-gray.html',

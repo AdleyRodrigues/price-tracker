@@ -10,7 +10,7 @@ export function labelModulo(modulo: ModuloDash): string {
 
 export function subtituloModulo(modulo: ModuloDash): string {
   return modulo === 'notebooks'
-    ? 'ASUS 16:10 · RTX 4060 / 5050 / 5060'
+    ? 'Foco 4K TV · RTX 5060 / 5050 / 4060 · até R$ 9.000'
     : 'Xiaomi & Poco';
 }
 

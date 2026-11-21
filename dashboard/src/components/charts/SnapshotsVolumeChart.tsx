@@ -1,4 +1,3 @@
-import { motion } from 'framer-motion';
 import {
   Bar,
   BarChart,
@@ -8,6 +7,8 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
+import { CompactChartTooltip } from '@/components/charts/CompactChartTooltip';
+import { LazyChartMount } from '@/components/charts/LazyChartMount';
 
 type Props = {
   data: Array<{
@@ -29,22 +30,17 @@ export function SnapshotsVolumeChart({ data }: Props) {
   }));
 
   return (
-    <motion.section
-      className="market-panel p-5"
-      initial={{ opacity: 0, y: 14 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 0.2, duration: 0.45 }}
-    >
+    <section className="market-panel relative overflow-visible p-5 hover:z-30">
       <p className="text-[0.7rem] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
         Cobertura
       </p>
       <h3 className="font-display text-lg font-bold tracking-tight">Volume de snapshots</h3>
       <p className="mt-1 text-sm text-muted-foreground">Quantidade de registros por produto</p>
 
-      <div className="mt-4 h-56">
-        <ResponsiveContainer width="100%" height="100%">
+      <LazyChartMount className="mt-4 h-56 overflow-visible" minHeight={224}>
+        <ResponsiveContainer width="100%" height="100%" debounce={150}>
           <BarChart data={rows} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#d9dee7" vertical={false} />
+            <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
             <XAxis
               dataKey="short"
               tick={{ fontSize: 11, fill: '#5b6472' }}
@@ -58,16 +54,28 @@ export function SnapshotsVolumeChart({ data }: Props) {
               tickLine={false}
             />
             <Tooltip
-              contentStyle={{ borderRadius: 12, border: '1px solid #d9dee7', maxWidth: 360 }}
-              formatter={(value: number, _name, item) => {
-                const full = (item?.payload as { label?: string } | undefined)?.label;
-                return [value, full ?? 'Snapshots'];
-              }}
+              content={
+                <CompactChartTooltip
+                  metricLabel="Snapshots"
+                  formatValue={(v) => v.toLocaleString('pt-BR')}
+                />
+              }
+              cursor={{ fill: 'rgba(15, 107, 76, 0.06)' }}
+              wrapperStyle={{ zIndex: 50, outline: 'none' }}
+              allowEscapeViewBox={{ x: true, y: true }}
+              isAnimationActive={false}
             />
-            <Bar dataKey="totalSnapshots" fill="#0f6b4c" radius={[8, 8, 0, 0]} maxBarSize={48} />
+            <Bar
+              dataKey="totalSnapshots"
+              name="Snapshots"
+              fill="#0f6b4c"
+              radius={[8, 8, 0, 0]}
+              maxBarSize={48}
+              isAnimationActive={false}
+            />
           </BarChart>
         </ResponsiveContainer>
-      </div>
-    </motion.section>
+      </LazyChartMount>
+    </section>
   );
 }

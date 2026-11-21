@@ -37,10 +37,28 @@ describe('filtros domain', () => {
       expect(tituloBloqueado('ASUS TUF Gaming A15 RTX 4060 16GB SSD 512GB')).toBe(true);
     });
 
-    it('bloqueia notebooks de outras marcas (Acer, Lenovo, Dell, etc.) mesmo com 16:10', () => {
-      expect(tituloBloqueado('Notebook Gamer Acer Nitro 16 RTX 4060 WUXGA 16:10')).toBe(true);
-      expect(tituloBloqueado('Laptop Dell G16 7630 RTX 4060 16" QHD+')).toBe(true);
-      expect(tituloBloqueado('Notebook Lenovo Legion Pro 5 16" WQXGA RTX 5050')).toBe(true);
+    it('bloqueia notebooks de marcas não permitidas (HP, Apple, Samsung, etc.)', () => {
+      expect(tituloBloqueado('Notebook Gamer HP Omen 16 RTX 4060 WUXGA 16:10')).toBe(true);
+      expect(tituloBloqueado('MacBook Pro Apple M3 Max 16"')).toBe(true);
+      expect(tituloBloqueado('Notebook Samsung Galaxy Book4 Ultra RTX 4070')).toBe(true);
+    });
+
+    it('aceita notebooks das marcas e famílias suportadas (ASUS TUF, Avell, Lenovo LOQ, Acer Nitro V16, ASUS V16)', () => {
+      expect(
+        tituloBloqueado('Notebook Gamer Avell Storm 560 Intel Core i7 RTX 5060 16GB 16" 16:10')
+      ).toBe(false);
+      expect(
+        tituloBloqueado('Notebook Avell ION A70 AMD Ryzen 7 RTX 5060 16GB 16" WUXGA')
+      ).toBe(false);
+      expect(
+        tituloBloqueado('Notebook Gamer Lenovo LOQ 15 Intel Core i5 RTX 5060 16GB 15.6"')
+      ).toBe(false);
+      expect(
+        tituloBloqueado('Notebook Gamer Acer Nitro V16 ANV16-41 Ryzen 7 RTX 5060 16"')
+      ).toBe(false);
+      expect(
+        tituloBloqueado('Notebook ASUS Gaming V16 V3607VH RTX 5060 Intel Core 5 16GB 16"')
+      ).toBe(false);
     });
 
     it('bloqueia notebooks ASUS que NÃO tenham tela 16:10 (ex: 15.6", 17.3", A15, F15 com 16:9)', () => {
@@ -83,7 +101,7 @@ describe('filtros domain', () => {
       ).toBe(false);
     });
 
-    it('bloqueia séries fora de escopo (G16, M16, V16, etc.)', () => {
+    it('bloqueia séries fora de escopo (G16, M16, ROG Strix)', () => {
       expect(
         tituloBloqueado(
           'Laptop ASUS ROG Strix G16 Intel Core i9 16GB RAM 1TB SSD RTX 5060 16 polegadas 240Hz'
@@ -91,20 +109,43 @@ describe('filtros domain', () => {
       ).toBe(true);
       expect(
         tituloBloqueado(
+          'Notebook Gamer Asus Rog Strix G16, Core Ultra 9, Nvidia Rtx™ 5060, 32 Gb Ram, 1.0 Tb'
+        )
+      ).toBe(true);
+      expect(
+        tituloBloqueado(
           'Notebook ASUS TUF Gaming G16 RTX 5050 16:10'
+        )
+      ).toBe(true);
+      expect(
+        tituloBloqueado(
+          'Notebook ASUS ROG Strix G16 G615JM RTX 5060 16GB 16"'
         )
       ).toBe(true);
     });
 
-    it('bloqueia modelos da linha ASUS V16 / V3607', () => {
+    it('aceita modelos da linha ASUS Gaming V16 / V3607 para monitoramento', () => {
       expect(
         tituloBloqueado(
           'Laptop ASUS Gamer V16 V3607VH RTX 5050 Core 5 16GB RAM 512GB SSD 1920x1200'
         )
-      ).toBe(true);
+      ).toBe(false);
       expect(
         tituloBloqueado(
           'Notebook Asus Gaming V16 V3607vh Nvidia Rtx 5050 Intel Core 5 16gb Ram 512gb Ssd Windows 11'
+        )
+      ).toBe(false);
+    });
+
+    it('bloqueia séries premium fora do escopo (ROG Strix G16, Zephyrus M16)', () => {
+      expect(
+        tituloBloqueado(
+          'Notebook ASUS ROG Strix G16 G614JVR Intel Core i9 RTX 4060 16GB RAM'
+        )
+      ).toBe(true);
+      expect(
+        tituloBloqueado(
+          'Notebook ASUS ROG Zephyrus M16 GU604VI RTX 4070 32GB'
         )
       ).toBe(true);
     });

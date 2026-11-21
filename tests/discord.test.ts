@@ -54,10 +54,12 @@ describe('discord service', () => {
   });
 
   describe('formatarItemField', () => {
-    it('formata campo individual com medalha, à vista, parcelado e link', () => {
+    it('formata campo individual com medalha, à vista, parcelado, hardware, TGP e link', () => {
       const field = formatarItemField(ofertas[0], 0);
       expect(field.name).toBe('🥇 1º — Amazon');
       expect(field.value).toContain('ASUS TUF Gaming A16');
+      expect(field.value).toContain('⚡ **TGP:** `115W Full Power`');
+      expect(field.value).toContain('📺 **HDMI:** `HDMI 2.1 FRL (48 Gbps) (4K 120Hz)`');
       expect(field.value).toContain('💵 À vista: R$');
       expect(field.value).toContain('💳 Parcelado: R$ 5.900,00 (10x de R$ 590,00 sem juros)');
       expect(field.value).toContain('frete grátis');
@@ -68,6 +70,35 @@ describe('discord service', () => {
     it('formata cupom com destaque e preço final calculado', () => {
       const field = formatarItemField(ofertas[1], 1);
       expect(field.value).toContain('🎟️ Cupom: `TUF10` (Total c/ cupom: **R$ 4.949,10**)');
+    });
+
+    it('inclui alerta de 8 GB RAM para modelos que engasgam em 4K', () => {
+      const oferta8gb: Oferta = {
+        loja: 'KaBuM!',
+        titulo: 'Notebook ASUS TUF Gaming F16 FX608JHR Intel Core i7 8GB RAM 512GB SSD RTX 5050',
+        precoAVista: 7999.0,
+        precoTotal: 7999.0,
+        frete: 0,
+        url: 'https://example.com/8gb',
+      };
+      const field = formatarItemField(oferta8gb, 0);
+      expect(field.value).toContain('[UPGRADE OBRIGATÓRIO]');
+      expect(field.value).toContain('8 GB RAM');
+      expect(field.value).toContain('R$ 200');
+    });
+
+    it('inclui alerta de TGP abaixo de 100W para ASUS V16', () => {
+      const ofertaV16: Oferta = {
+        loja: 'ASUS',
+        titulo: 'Notebook ASUS Gaming V16 V3607VH Intel Core i7 16GB 512GB RTX 5060',
+        precoAVista: 6999.0,
+        precoTotal: 6999.0,
+        frete: 0,
+        url: 'https://example.com/v16',
+      };
+      const field = formatarItemField(ofertaV16, 0);
+      expect(field.value).toContain('Slim Reduzido');
+      expect(field.value).toContain('abaixo de 100W');
     });
   });
 
@@ -83,12 +114,12 @@ describe('discord service', () => {
   });
 
   describe('montarPayloadDiscord', () => {
-    it('cria estrutura com título "💻 Monitor ASUS 16:10 (RTX 4060 / 5050 / 5060)"', () => {
+    it('cria estrutura com título "💻 Monitor Notebooks Gamer 4K TV (RTX 5060 / 5050 / 4060)"', () => {
       const payload = montarPayloadDiscord(ofertas, '123456789', '01001-000');
       expect(payload).not.toBeNull();
       expect(payload?.content).not.toContain('<@123456789>');
       expect(payload?.content).toContain('Pódio atualizado (Top 3)');
-      expect(payload?.embeds[0].title).toBe('💻 Monitor ASUS 16:10 (RTX 4060 / 5050 / 5060)');
+      expect(payload?.embeds[0].title).toBe('💻 Monitor Notebooks Gamer 4K TV (RTX 5060 / 5050 / 4060)');
       expect(payload?.embeds[0].description).toContain('01001-000');
       expect(payload?.embeds[0].fields).toHaveLength(3);
       expect(payload?.embeds[0].fields[0].name).toBe('🥇 1º — Amazon');
@@ -107,8 +138,8 @@ describe('discord service', () => {
       const payload = montarPayloadDiscord([superOferta, ...ofertas], '123456789', '01001-000');
       expect(payload).not.toBeNull();
       expect(payload?.content).toContain('<@123456789>');
-      expect(payload?.content).toContain('OPORTUNIDADE ASUS 16:10 ABAIXO DE');
-      expect(payload?.embeds[0].title).toBe('💻 Monitor ASUS 16:10 (RTX 4060 / 5050 / 5060)');
+      expect(payload?.content).toContain('OPORTUNIDADE NOTEBOOK 4K ABAIXO DE');
+      expect(payload?.embeds[0].title).toBe('💻 Monitor Notebooks Gamer 4K TV (RTX 5060 / 5050 / 4060)');
     });
 
     it('retorna null se lista de ofertas for vazia', () => {

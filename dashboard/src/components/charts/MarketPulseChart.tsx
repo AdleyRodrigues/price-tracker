@@ -1,17 +1,21 @@
-import { motion } from 'framer-motion';
+import { memo, useMemo, useState } from 'react';
 import {
-  Area,
   CartesianGrid,
   Legend,
-  ComposedChart,
+  Line,
+  LineChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
 } from 'recharts';
+import type { CategoricalChartState } from 'recharts/types/chart/types';
+import { LazyChartMount } from '@/components/charts/LazyChartMount';
+import { downsample } from '@/lib/downsample';
 import { formatBRL, formatDateTime, formatRelativeTime } from '@/lib/format';
 
 const PALETTE = ['#0f6b4c', '#e8913a', '#0369a1', '#be123c', '#0f766e', '#a16207', '#4f46e5', '#db2777'];
+const MAX_PONTOS_CHART = 48;
 
 function colorFor(chave: string, index: number): string {
   const known: Record<string, string> = {
@@ -25,15 +29,13 @@ function colorFor(chave: string, index: number): string {
 type Props = {
   data: Array<{ coletadoEm: string; label: string;[key: string]: string | number | null }>;
   produtos: string[];
-  /** Labels ricos (SKU · CPU · RAM · GPU) por produto_chave. */
   labels?: Record<string, string>;
   titulo?: string;
   subtitulo?: string;
   eyebrow?: string;
-  /** Oculta o sufixo da GPU nos hovers/legendas quando o gráfico já é dedicado a uma GPU */
   ocultarGpu?: boolean;
-  /** Último snapshot real usado no gráfico. */
   atualizadoEm?: string | null;
+  eager?: boolean;
 };
 
 function formatarLabelSeries(rawLabel: string, ocultarGpu: boolean): string {
@@ -41,7 +43,81 @@ function formatarLabelSeries(rawLabel: string, ocultarGpu: boolean): string {
   return rawLabel.replace(/(?:\s*·\s*|\s+)RTX\s*\d{4}(?:\s*Ti)?/gi, '').trim();
 }
 
-export function MarketPulseChart({
+type SerieInfo = { chave: string; label: string; color: string };
+
+type HoverInfo = {
+  chave: string;
+  dataLabel: string;
+  nome: string;
+  valor: number;
+  color: string;
+};
+
+/**
+ * Com shared={false} o Recharts expõe yValue = yScale.invert(chartY).
+ * Escolhemos a série cujo preço no X ativo está mais perto desse yValue.
+ */
+function resolverHover(
+  state: CategoricalChartState,
+  chartData: Props['data'],
+  series: SerieInfo[]
+): HoverInfo | null {
+  const yValue = state.yValue;
+  const index = state.activeTooltipIndex;
+  if (yValue == null || !Number.isFinite(yValue) || index == null || index < 0) {
+    return null;
+  }
+
+  const row = chartData[index];
+  if (!row) return null;
+
+  let melhor: SerieInfo | null = null;
+  let melhorDist = Infinity;
+  for (const s of series) {
+    const v = Number(row[s.chave]);
+    if (!Number.isFinite(v)) continue;
+    const dist = Math.abs(v - Number(yValue));
+    if (dist < melhorDist) {
+      melhorDist = dist;
+      melhor = s;
+    }
+  }
+  if (!melhor) return null;
+
+  const valor = Number(row[melhor.chave]);
+  if (!Number.isFinite(valor)) return null;
+
+  return {
+    chave: melhor.chave,
+    dataLabel: String(row.label ?? state.activeLabel ?? ''),
+    nome: melhor.label,
+    valor,
+    color: melhor.color,
+  };
+}
+
+function MarketPulseTooltip({ hover }: { hover: HoverInfo | null }) {
+  if (!hover) return null;
+
+  return (
+    <div
+      className="pointer-events-none z-[60] max-w-[14rem] rounded-lg border border-border px-2.5 py-1.5 text-xs shadow-md"
+      style={{ backgroundColor: '#ffffff' }}
+    >
+      <p className="mb-0.5 truncate font-semibold text-foreground">{hover.dataLabel}</p>
+      <p
+        className="mb-1 truncate font-medium leading-snug"
+        style={{ color: hover.color }}
+        title={hover.nome}
+      >
+        {hover.nome}
+      </p>
+      <p className="tabular-nums font-semibold text-foreground">{formatBRL(hover.valor)}</p>
+    </div>
+  );
+}
+
+export const MarketPulseChart = memo(function MarketPulseChart({
   data,
   produtos,
   labels = {},
@@ -50,31 +126,38 @@ export function MarketPulseChart({
   eyebrow = 'Market pulse',
   ocultarGpu,
   atualizadoEm = null,
+  eager = false,
 }: Props) {
   const gpuNoHeader = Boolean((titulo + ' ' + (eyebrow ?? '')).match(/rtx\s*\d{4}/i));
   const deveOcultarGpu = ocultarGpu ?? gpuNoHeader;
 
-  const series = produtos.map((chave, i) => {
-    const rawLabel = labels[chave] ?? chave;
-    return {
-      chave,
-      label: formatarLabelSeries(rawLabel, deveOcultarGpu),
-      color: colorFor(chave, i),
-    };
-  });
+  const series = useMemo(
+    () =>
+      produtos.map((chave, i) => {
+        const rawLabel = labels[chave] ?? chave;
+        return {
+          chave,
+          label: formatarLabelSeries(rawLabel, deveOcultarGpu),
+          color: colorFor(chave, i),
+        };
+      }),
+    [produtos, labels, deveOcultarGpu]
+  );
+
+  const chartData = useMemo(() => downsample(data, MAX_PONTOS_CHART), [data]);
+  const [hover, setHover] = useState<HoverInfo | null>(null);
 
   const ultimoPonto =
     atualizadoEm ??
     (data.length ? String(data[data.length - 1]?.coletadoEm ?? '') || null : null);
 
+  const onChartMouseMove = (state: CategoricalChartState) => {
+    setHover(resolverHover(state, chartData, series));
+  };
+
   return (
-    <motion.section
-      className="market-panel p-5 sm:p-6"
-      initial={{ opacity: 0, y: 18 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1], delay: 0.15 }}
-    >
-      <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+    <section className="market-panel relative overflow-visible p-5 sm:p-6 hover:z-30">
+      <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="text-[0.7rem] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
             {eyebrow}
@@ -94,26 +177,24 @@ export function MarketPulseChart({
       {data.length === 0 ? (
         <p className="py-16 text-center text-sm text-muted-foreground">Sem série no período.</p>
       ) : (
-        <div className="h-80 w-full sm:h-[28rem]">
-          <ResponsiveContainer width="100%" height="100%">
-            <ComposedChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 8 }}>
-              <defs>
-                {series.map((s) => (
-                  <linearGradient key={s.chave} id={`fill-${s.chave}`} x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor={s.color} stopOpacity={0.22} />
-                    <stop offset="100%" stopColor={s.color} stopOpacity={0} />
-                  </linearGradient>
-                ))}
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="#d9dee7" vertical={false} />
+        <LazyChartMount eager={eager} minHeight={288} className="h-72 w-full sm:h-80">
+          <ResponsiveContainer width="100%" height="100%" debounce={120}>
+            <LineChart
+              data={chartData}
+              margin={{ top: 8, right: 8, left: 0, bottom: 8 }}
+              onMouseMove={onChartMouseMove}
+              onMouseLeave={() => setHover(null)}
+            >
+              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
               <XAxis
                 dataKey="label"
                 tick={{ fontSize: 11, fill: '#5b6472' }}
                 axisLine={false}
                 tickLine={false}
+                minTickGap={28}
               />
               <YAxis
-                width={56}
+                width={52}
                 tick={{ fontSize: 11, fill: '#5b6472' }}
                 axisLine={false}
                 tickLine={false}
@@ -122,40 +203,43 @@ export function MarketPulseChart({
                 }
               />
               <Tooltip
-                contentStyle={{
-                  borderRadius: 12,
-                  border: '1px solid #d9dee7',
-                  boxShadow: '0 12px 30px -18px rgba(11,18,32,0.4)',
-                  maxWidth: 420,
-                }}
-                formatter={(value: number, name: string) => [
-                  formatBRL(value),
-                  formatarLabelSeries(name, deveOcultarGpu),
-                ]}
+                shared={false}
+                content={<MarketPulseTooltip hover={hover} />}
+                wrapperStyle={{ outline: 'none', zIndex: 50 }}
+                allowEscapeViewBox={{ x: true, y: true }}
+                isAnimationActive={false}
+                cursor={{ stroke: '#d9dee7', strokeWidth: 1 }}
               />
               <Legend
                 verticalAlign="bottom"
-                wrapperStyle={{ fontSize: 11, paddingTop: 12, lineHeight: '1.35' }}
+                wrapperStyle={{ fontSize: 11, paddingTop: 8, lineHeight: '1.35' }}
               />
-              {series.map((s, i) => (
-                <Area
-                  key={s.chave}
-                  type="monotone"
-                  dataKey={s.chave}
-                  name={s.label}
-                  stroke={s.color}
-                  strokeWidth={2.5}
-                  fill={`url(#fill-${s.chave})`}
-                  connectNulls
-                  isAnimationActive={i === 0}
-                  activeDot={{ r: 5 }}
-                  dot={false}
-                />
-              ))}
-            </ComposedChart>
+              {series.map((s) => {
+                const destacada = !hover || hover.chave === s.chave;
+                return (
+                  <Line
+                    key={s.chave}
+                    type="monotone"
+                    dataKey={s.chave}
+                    name={s.label}
+                    stroke={s.color}
+                    strokeWidth={hover?.chave === s.chave ? 2.5 : 2}
+                    strokeOpacity={destacada ? 1 : 0.28}
+                    connectNulls
+                    isAnimationActive={false}
+                    dot={false}
+                    activeDot={
+                      hover?.chave === s.chave
+                        ? { r: 5, strokeWidth: 2, stroke: '#fff' }
+                        : false
+                    }
+                  />
+                );
+              })}
+            </LineChart>
           </ResponsiveContainer>
-        </div>
+        </LazyChartMount>
       )}
-    </motion.section>
+    </section>
   );
-}
+});

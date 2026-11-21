@@ -1,12 +1,17 @@
+import { memo, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { motion } from 'framer-motion';
 import { ArrowUpRight, ChevronRight, ExternalLink } from 'lucide-react';
 import { ProductSparkline } from '@/components/charts/ProductSparkline';
 import { Badge } from '@/components/ui/badge';
 import { isRealUrl } from '@/lib/api';
-import { formatBRL, formatDateTime, formatPct } from '@/lib/format';
-import { variacaoLabel } from '@/lib/insights';
+import { formatBRL, formatDateShort, formatDateTime, formatPct } from '@/lib/format';
 import type { ModuloDash } from '@/lib/modulo';
+import {
+  classificarNotebook,
+  ehMarcaPremium,
+  foraDoOrcamento,
+} from '@/lib/serie-notebook';
+import { custoBeneficio4k, specsFromLabel } from '@/lib/custo-beneficio';
 
 const STROKES = ['#0f6b4c', '#e8913a', '#0369a1', '#be123c', '#0f766e', '#a16207'];
 
@@ -24,7 +29,7 @@ type Props = {
   modulo?: ModuloDash;
 };
 
-export function ProductMarketCard({
+export const ProductMarketCard = memo(function ProductMarketCard({
   produtoChave,
   label,
   menorPreco,
@@ -32,7 +37,6 @@ export function ProductMarketCard({
   urlMenorPreco,
   coletadoEm,
   variacao7d,
-  totalSnapshots,
   sparkline,
   index,
   modulo = 'celular',
@@ -45,19 +49,46 @@ export function ProductMarketCard({
       ? `/produto/${produtoChave}?modulo=notebooks`
       : `/produto/${produtoChave}`;
 
+  const notebookInfo = useMemo(() => {
+    if (modulo !== 'notebooks') return null;
+    const cls = classificarNotebook(produtoChave, label);
+    const specs = specsFromLabel(label, produtoChave);
+    const cb = menorPreco ? custoBeneficio4k({ ...specs, preco: menorPreco }) : null;
+    return { cls, specs, cb };
+  }, [modulo, produtoChave, label, menorPreco]);
+
+  /** Menor preço no histórico da janela (sparkline) + data em que apareceu. */
+  const minimoHistorico = useMemo(() => {
+    if (!sparkline.length) return null;
+    let best = sparkline[0]!;
+    for (const p of sparkline) {
+      if (p.preco < best.preco) best = p;
+    }
+    return best;
+  }, [sparkline]);
+
+  const economiaVsHistorico =
+    menorPreco != null && minimoHistorico != null
+      ? menorPreco - minimoHistorico.preco
+      : null;
+  const noMinimoHistorico =
+    economiaVsHistorico != null && Math.abs(economiaVsHistorico) < 1;
+
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 14 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 0.18 + index * 0.07, duration: 0.45 }}
-      whileHover={{ y: -3 }}
-      className="market-panel group overflow-hidden"
-    >
+    <div className="market-panel group overflow-hidden">
       <Link to={detailTo} className="block p-5">
         <div className="flex items-start justify-between gap-3">
           <div>
             <h3 className="font-display text-base font-bold leading-snug tracking-tight sm:text-lg">
-              {label}
+              {notebookInfo
+                ? (() => {
+                  const partes = label.split('·').map((s) => s.trim()).filter(Boolean);
+                  const resto = partes.slice(1).join(' · ');
+                  return resto
+                    ? `${notebookInfo.cls.linhaLabel} · ${resto}`
+                    : notebookInfo.cls.linhaLabel || label;
+                })()
+                : label}
             </h3>
             <p className="mt-1 text-sm text-muted-foreground">
               {lojaMenorPreco ?? '—'} · {formatDateTime(coletadoEm)}
@@ -68,26 +99,107 @@ export function ProductMarketCard({
           </Badge>
         </div>
 
-        <div className="mt-4 flex items-end justify-between gap-4">
-          <div>
-            <p className="text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-              Melhor agora
-            </p>
-            <p className="mt-1 font-display text-3xl font-bold tabular-price text-primary">
-              {formatBRL(menorPreco)}
-            </p>
-            <p className="mt-1 text-xs text-muted-foreground">
-              {variacaoLabel(variacao7d)} · {totalSnapshots} registros
-            </p>
+        {notebookInfo ? (
+          <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
+            {notebookInfo.cls.categoriaTgp === 'full_power' ? (
+              <span className="inline-flex items-center gap-1 rounded bg-emerald-500/10 px-1.5 py-0.5 text-[0.68rem] font-semibold text-emerald-700 border border-emerald-500/20">
+                ⚡ TGP {notebookInfo.cls.tgpWatts}W Full
+              </span>
+            ) : notebookInfo.cls.categoriaTgp === 'balanceado' ? (
+              <span className="inline-flex items-center gap-1 rounded bg-sky-500/10 px-1.5 py-0.5 text-[0.68rem] font-semibold text-sky-700 border border-sky-500/20">
+                ⚡ TGP {notebookInfo.cls.tgpWatts}W Bal.
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1 rounded bg-amber-500/15 px-1.5 py-0.5 text-[0.68rem] font-semibold text-amber-800 border border-amber-500/30">
+                ⚠️ TGP {notebookInfo.cls.tgpWatts}W Slim
+              </span>
+            )}
+            <span className="inline-flex items-center gap-1 rounded bg-muted/60 px-1.5 py-0.5 text-[0.68rem] font-medium text-muted-foreground">
+              {notebookInfo.cls.suporta4k120Hz ? '📺 HDMI 2.1 FRL' : '📺 HDMI TMDS'}
+            </span>
+            {notebookInfo.specs.ramGb ? (
+              notebookInfo.specs.ramGb < 16 ? (
+                <span className="inline-flex items-center gap-1 rounded bg-destructive/15 px-1.5 py-0.5 text-[0.68rem] font-bold text-destructive border border-destructive/30">
+                  UPGRADE OBRIGATÓRIO · {notebookInfo.specs.ramGb} GB
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1 rounded bg-muted/60 px-1.5 py-0.5 text-[0.68rem] font-medium text-muted-foreground">
+                  {notebookInfo.specs.ramGb} GB RAM
+                </span>
+              )
+            ) : null}
+            {menorPreco != null ? (
+              menorPreco <= 9000 ? (
+                <span className="inline-flex items-center gap-1 rounded bg-emerald-500/10 px-1.5 py-0.5 text-[0.65rem] font-medium text-emerald-700">
+                  ✓ Até R$ 9k
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1 rounded bg-destructive/10 px-1.5 py-0.5 text-[0.65rem] font-medium text-destructive">
+                  Acima R$ 9k
+                </span>
+              )
+            ) : null}
+            {notebookInfo &&
+              (ehMarcaPremium(notebookInfo.cls.marca) || foraDoOrcamento(menorPreco)) ? (
+              <span className="inline-flex items-center gap-1 rounded border border-amber-500/40 bg-amber-500/15 px-1.5 py-0.5 text-[0.65rem] font-bold uppercase tracking-wide text-amber-900 dark:text-amber-200">
+                Premium
+              </span>
+            ) : null}
           </div>
-          <div className="w-28 shrink-0 sm:w-36">
+        ) : null}
+
+        <div className="mt-4 grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <p className="text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                Preço atual
+              </p>
+              <p className="mt-1 font-display text-2xl font-bold tabular-price text-primary sm:text-3xl">
+                {formatBRL(menorPreco)}
+              </p>
+              {notebookInfo?.cb ? (
+                <p className="mt-0.5 text-xs font-medium text-foreground">
+                  <span className="font-bold text-primary">
+                    {notebookInfo.cb.potenciaPorMil.toFixed(1)}
+                  </span>{' '}
+                  pts/R$ mil
+                </p>
+              ) : null}
+            </div>
+            <div>
+              <p className="text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                Mínimo histórico
+              </p>
+              <p className="mt-1 font-display text-xl font-bold tabular-price text-foreground sm:text-2xl">
+                {formatBRL(minimoHistorico?.preco)}
+              </p>
+              {minimoHistorico ? (
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  em {formatDateShort(minimoHistorico.coletadoEm)}
+                </p>
+              ) : (
+                <p className="mt-0.5 text-xs text-muted-foreground">sem série</p>
+              )}
+            </div>
+          </div>
+          <div className="w-full sm:w-28 sm:shrink-0 lg:w-36">
             <ProductSparkline data={sparkline} stroke={stroke} />
           </div>
         </div>
 
+        {noMinimoHistorico ? (
+          <p className="mt-3 inline-flex rounded-md bg-emerald-500/10 px-2 py-1 text-xs font-semibold text-emerald-800">
+            No mínimo histórico — boa hora de comprar
+          </p>
+        ) : economiaVsHistorico != null && economiaVsHistorico > 0 ? (
+          <p className="mt-3 text-xs text-muted-foreground">
+            +{formatBRL(economiaVsHistorico)} acima do mínimo da janela
+          </p>
+        ) : null}
+
         <div className="mt-4 flex items-center justify-between border-t border-border/70 pt-3 text-sm text-muted-foreground transition-colors group-hover:text-primary">
           <span className="inline-flex items-center gap-1 font-medium">
-            Abrir price theater
+            Ver detalhes
             <ChevronRight className="h-4 w-4" />
           </span>
           {isRealUrl(urlMenorPreco) ? (
@@ -107,6 +219,6 @@ export function ProductMarketCard({
           )}
         </div>
       </Link>
-    </motion.div>
+    </div>
   );
-}
+});
