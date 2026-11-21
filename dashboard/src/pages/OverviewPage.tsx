@@ -19,7 +19,27 @@ import { labelModulo, parseModulo } from '@/lib/modulo';
 import { calcularDestaques4k } from '@/lib/custo-beneficio';
 
 type SegmentoGrafico = 'todos' | '5060-full' | '5060-slim' | '5050' | '4060';
-type MarcaFiltro = 'todas' | 'ASUS' | 'Avell' | 'Lenovo' | 'Acer' | 'Dell' | 'Gigabyte';
+type MarcaFiltro =
+  | 'todas'
+  | 'ASUS'
+  | 'Avell'
+  | 'Lenovo'
+  | 'Acer'
+  | 'Dell'
+  | 'Alienware'
+  | 'Gigabyte';
+
+const MARCAS_PADRAO = ['todas', 'ASUS', 'Avell', 'Lenovo', 'Acer'] as const;
+const MARCAS_COM_PREMIUM = [
+  'todas',
+  'ASUS',
+  'Avell',
+  'Lenovo',
+  'Acer',
+  'Dell',
+  'Alienware',
+  'Gigabyte',
+] as const;
 
 export function OverviewPage() {
   const [params] = useSearchParams();
@@ -95,13 +115,7 @@ export function OverviewPage() {
           return false;
       }
 
-      if (marcaFiltro !== 'todas') {
-        if (marcaFiltro === 'Dell') {
-          if (cls.marca !== 'Dell' && cls.marca !== 'Alienware') return false;
-        } else if (cls.marca !== marcaFiltro) {
-          return false;
-        }
-      }
+      if (marcaFiltro !== 'todas' && cls.marca !== marcaFiltro) return false;
       if (apenasTgpAlto && cls.tgpWatts < 110) return false;
       if (segmentoFiltro === '5060-full' && (cls.gpu !== '5060' || cls.categoriaTgp !== 'full_power'))
         return false;
@@ -222,12 +236,8 @@ export function OverviewPage() {
                 </div>
 
                 <div className="flex flex-wrap items-center gap-1.5">
-                  <div className="inline-flex rounded-lg border bg-muted/20 p-0.5 text-xs">
-                    {(
-                      mostrarPremium
-                        ? (['todas', 'ASUS', 'Avell', 'Lenovo', 'Acer', 'Dell', 'Gigabyte'] as const)
-                        : (['todas', 'ASUS', 'Avell', 'Lenovo', 'Acer'] as const)
-                    ).map((m) => (
+                  <div className="inline-flex max-w-full flex-wrap rounded-lg border bg-muted/20 p-0.5 text-xs">
+                    {(mostrarPremium ? MARCAS_COM_PREMIUM : MARCAS_PADRAO).map((m) => (
                       <button
                         key={m}
                         type="button"
@@ -252,6 +262,7 @@ export function OverviewPage() {
                           setMarcaFiltro('todas');
                         } else if (
                           marcaFiltro === 'Dell' ||
+                          marcaFiltro === 'Alienware' ||
                           marcaFiltro === 'Gigabyte'
                         ) {
                           setMarcaFiltro('todas');

@@ -6,7 +6,7 @@ const REPO = 'AdleyRodrigues/price-tracker';
 const BRANCH = 'historico-data';
 const FILE = 'historico.db';
 
-const MIN_INTERVAL_MS = 60_000;
+const MIN_INTERVAL_MS = 30_000;
 
 let lastAttempt = 0;
 let lastSuccessIso: string | null = null;
@@ -36,6 +36,7 @@ async function latestCommitSha(): Promise<{ sha: string; date?: string } | null>
     headers: {
       Accept: 'application/vnd.github+json',
       'User-Agent': 'lg-price-tracker-dashboard',
+      'Cache-Control': 'no-cache',
     },
   });
   if (!res.ok) return null;
@@ -48,8 +49,20 @@ async function latestCommitSha(): Promise<{ sha: string; date?: string } | null>
 }
 
 /**
+ * Sempre pelo SHA do commit — raw da branch fica cacheado no CDN do GitHub
+ * e a dash "congela" com dados velhos mesmo após o Actions publicar.
+ */
+function remoteDbUrlForSha(sha: string): string {
+  const override = process.env.HISTORICO_REMOTE_DB_URL?.trim();
+  // Só aceita override se já apontar para um commit (40 hex) — nunca a branch.
+  if (override && /\/[0-9a-f]{40}\//i.test(override)) {
+    return override.replace(/\/[0-9a-f]{40}\//i, `/${sha}/`);
+  }
+  return `https://raw.githubusercontent.com/${REPO}/${sha}/${FILE}`;
+}
+
+/**
  * Baixa historico.db da branch historico-data (Actions) para o SQLite local.
- * Usa o SHA do commit (não o raw da branch) para evitar cache stale do CDN.
  */
 export async function syncHistoricoFromRemote(opts?: {
   force?: boolean;
@@ -78,7 +91,7 @@ export async function syncHistoricoFromRemote(opts?: {
   if (!commit) return { updated: false, reason: 'commit-nao-encontrado' };
 
   const metaPath = `${localPath}.remote-meta.json`;
-  let prev: { sha?: string } = {};
+  let prev: { sha?: string; source?: string } = {};
   if (fs.existsSync(metaPath)) {
     try {
       prev = JSON.parse(fs.readFileSync(metaPath, 'utf8')) as typeof prev;
@@ -87,20 +100,33 @@ export async function syncHistoricoFromRemote(opts?: {
     }
   }
 
-  if (!opts?.force && prev.sha === commit.sha && fs.existsSync(localPath)) {
+  // Meta antiga baixada pela URL da branch (CDN) — força re-download mesmo com mesmo SHA.
+  const metaSuspeita =
+    typeof prev.source === 'string' &&
+    /\/historico-data\/historico\.db/i.test(prev.source) &&
+    !/\/[0-9a-f]{40}\//i.test(prev.source);
+
+  if (
+    !opts?.force &&
+    !metaSuspeita &&
+    prev.sha === commit.sha &&
+    fs.existsSync(localPath)
+  ) {
     lastSuccessIso = commit.date ?? lastSuccessIso;
     return { updated: false, reason: 'ja-atualizado', remoteAt: commit.date };
   }
 
-  const remoteUrl =
-    process.env.HISTORICO_REMOTE_DB_URL?.trim() ||
-    `https://raw.githubusercontent.com/${REPO}/${commit.sha}/${FILE}`;
+  const remoteUrl = remoteDbUrlForSha(commit.sha);
 
   let body: Response;
   try {
     body = await fetch(remoteUrl, {
       redirect: 'follow',
-      headers: { 'User-Agent': 'lg-price-tracker-dashboard', 'Cache-Control': 'no-cache' },
+      headers: {
+        'User-Agent': 'lg-price-tracker-dashboard',
+        'Cache-Control': 'no-cache',
+        Pragma: 'no-cache',
+      },
     });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
@@ -138,7 +164,7 @@ export async function syncHistoricoFromRemote(opts?: {
 
   lastSuccessIso = commit.date ?? new Date().toISOString();
   console.log(
-    `[historico-sync] Atualizado ${localPath} (${buf.byteLength} bytes) @ ${commit.sha.slice(0, 7)}`
+    `[historico-sync] Atualizado ${localPath} (${buf.byteLength} bytes) @ ${commit.sha.slice(0, 7)} via SHA`
   );
-  return { updated: true, reason: 'baixado', remoteAt: lastSuccessIso };
+  return { updated: true, reason: metaSuspeita ? 'rebaixado-cdn-stale' : 'baixado', remoteAt: lastSuccessIso };
 }

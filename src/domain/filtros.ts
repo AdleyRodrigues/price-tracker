@@ -137,7 +137,7 @@ function ehSeriePermitida(texto: string, chave?: string | null): boolean {
     /acer\s+nitro/i.test(texto) ||
     (/\bdell\b/i.test(texto) && /\bg\s*1[56]\b/i.test(texto)) ||
     (/alienware/i.test(texto) && /\b[mx]\s*16\b/i.test(texto)) ||
-    (/\b(gigabyte|aorus)\b/i.test(texto) && /\b(aorus\s*16|g6kf|g6)\b/i.test(texto))
+    (/\b(gigabyte|aorus)\b/i.test(texto) && /\b(aorus\s*16|\ba16\b|g6kf|g6)\b/i.test(texto))
   );
 }
 
@@ -191,12 +191,14 @@ export function identificarProdutoChaveNotebook(
     return `alienware_x16_${gpuChaveDeTexto(texto)}`;
   }
 
-  // 6. Gigabyte AORUS 16 / G6
-  if (/\b(gigabyte|aorus)\b/i.test(texto) && /aorus\s*16/i.test(texto)) {
-    return `gigabyte_aorus16_${gpuChaveDeTexto(texto)}`;
-  }
-  if (/\b(gigabyte|aorus)\b/i.test(texto) && /\bg6(?:kf)?\b/i.test(texto)) {
-    return `gigabyte_g6_${gpuChaveDeTexto(texto)}`;
+  // 6. Gigabyte AORUS 16 / A16 / G6 (antes do ASUS A16 — evita colisão de chave)
+  if (/\bgigabyte\b/i.test(texto) || /\baorus\b/i.test(texto)) {
+    if (/aorus\s*16|\ba16\b/i.test(texto)) {
+      return `gigabyte_aorus16_${gpuChaveDeTexto(texto)}`;
+    }
+    if (/\bg6(?:kf)?\b/i.test(texto)) {
+      return `gigabyte_g6_${gpuChaveDeTexto(texto)}`;
+    }
   }
 
   // 7. ASUS Gaming V16 (V3607)

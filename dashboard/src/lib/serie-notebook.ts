@@ -219,8 +219,12 @@ export function classificarNotebook(chave: string, label = ''): ClassificacaoNot
     });
   }
 
-  // 7. Gigabyte AORUS 16 / G6
-  if (/aorus16|aorus\s*16/i.test(t) || chave.startsWith('gigabyte_aorus')) {
+  // 7. Gigabyte AORUS 16 / A16 / G6 (antes do ASUS A16)
+  if (
+    chave.startsWith('gigabyte_aorus') ||
+    /aorus16|aorus\s*16/i.test(t) ||
+    (/\bgigabyte\b/i.test(t) && /\ba16\b/i.test(t))
+  ) {
     return montar({
       serie: 'gigabyte-aorus',
       marca: 'Gigabyte',
@@ -245,7 +249,11 @@ export function classificarNotebook(chave: string, label = ''): ClassificacaoNot
   }
 
   // 8. ASUS Gaming V16 (V3607)
-  if ((/v16|v3607|rp213/i.test(t) || chave.startsWith('asus_v3607')) && !/nitro/i.test(t)) {
+  if (
+    (/v16|v3607|rp213/i.test(t) || chave.startsWith('asus_v3607')) &&
+    !/nitro/i.test(t) &&
+    !/gigabyte|aorus/i.test(t)
+  ) {
     return montar({
       serie: 'asus-v16',
       marca: 'ASUS',
@@ -256,13 +264,15 @@ export function classificarNotebook(chave: string, label = ''): ClassificacaoNot
     });
   }
 
-  // 9. ASUS TUF A16
+  // 9. ASUS TUF A16 (não Gigabyte A16)
   if (
-    /\ba16\b/.test(t) ||
-    /\bfa607/.test(t) ||
-    /\bfa608/.test(t) ||
-    chave.startsWith('a16_') ||
-    /^fa607|^fa608/.test(chave)
+    !/gigabyte|aorus/i.test(t) &&
+    !chave.startsWith('gigabyte_') &&
+    (/\ba16\b/.test(t) ||
+      /\bfa607/.test(t) ||
+      /\bfa608/.test(t) ||
+      chave.startsWith('a16_') ||
+      /^fa607|^fa608/.test(chave))
   ) {
     return montar({
       serie: 'tuf-a16',

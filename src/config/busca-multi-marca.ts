@@ -37,6 +37,8 @@ export const TERMOS_POR_MARCA: Record<MarcaBusca, string[]> = {
   Gigabyte: [
     'gigabyte aorus 16 rtx 4060',
     'gigabyte aorus 16 rtx 5060',
+    'gigabyte a16 rtx 5050',
+    'gigabyte a16 rtx 5060',
     'gigabyte g6 rtx 4060',
     'gigabyte g6kf rtx 4060',
   ],

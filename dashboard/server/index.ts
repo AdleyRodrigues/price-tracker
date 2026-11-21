@@ -41,6 +41,20 @@ app.get('/api/sync-status', (c) =>
   })
 );
 
+/** Força re-download do historico.db (útil após Actions publicar). */
+app.post('/api/sync-historico', async (c) => {
+  try {
+    await ensureHistoricoSynced(true);
+    return c.json({
+      ok: true,
+      lastSyncIso: getLastHistoricoSyncIso(),
+    });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return c.json({ ok: false, error: msg }, 500);
+  }
+});
+
 app.route('/api', api);
 
 if (isProd) {
