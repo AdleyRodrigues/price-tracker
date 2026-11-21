@@ -23,7 +23,12 @@ describe('busca multi-marca', () => {
     expect(urlMercadoLivre('avell storm 560')).toBe(
       'https://lista.mercadolivre.com.br/notebook-avell-storm-560'
     );
-    expect(urlMercadoLivre('lenovo loq rtx 5060')).toContain('notebook-lenovo-loq-rtx-5060');
+    expect(urlMercadoLivre('avell storm560')).toBe(
+      'https://lista.mercadolivre.com.br/notebook-avell-storm560'
+    );
+    expect(urlMercadoLivre('acer nitro v16 rtx 5060')).toContain(
+      'notebook-acer-nitro-v16-rtx-5060'
+    );
     expect(urlMercadoLivre('dell g16 rtx 4060')).toContain('notebook-dell-g16-rtx-4060');
     expect(urlMercadoLivre('gigabyte aorus 16 rtx 4060')).toContain(
       'notebook-gigabyte-aorus-16-rtx-4060'
@@ -31,6 +36,9 @@ describe('busca multi-marca', () => {
   });
 
   it('URL KaBuM busca por marca', () => {
+    expect(urlKabumBusca('avell storm 560')).toBe(
+      'https://www.kabum.com.br/busca/notebook-avell-storm-560'
+    );
     expect(urlKabumBusca('avell ion a70')).toBe(
       'https://www.kabum.com.br/busca/notebook-avell-ion-a70'
     );
@@ -39,14 +47,18 @@ describe('busca multi-marca', () => {
     );
   });
 
-  it('expõe Avell, Dell e Gigabyte nas listas exportadas', () => {
+  it('expõe Acer, Avell, Dell e Gigabyte — sem Lenovo', () => {
+    expect(MERCADO_LIVRE_BUSCA_URLS.some((u) => /acer|nitro|anv16/i.test(u))).toBe(true);
     expect(MERCADO_LIVRE_BUSCA_URLS.some((u) => /avell/i.test(u))).toBe(true);
     expect(MERCADO_LIVRE_BUSCA_URLS.some((u) => /dell/i.test(u))).toBe(true);
     expect(MERCADO_LIVRE_BUSCA_URLS.some((u) => /gigabyte|aorus/i.test(u))).toBe(true);
+    expect(MERCADO_LIVRE_BUSCA_URLS.some((u) => /lenovo|loq/i.test(u))).toBe(false);
+    expect(KABUM_BUSCA_URLS.some((u) => /acer|nitro|anv16/i.test(u))).toBe(true);
     expect(KABUM_BUSCA_URLS.some((u) => /avell/i.test(u))).toBe(true);
-    expect(KABUM_BUSCA_URLS.some((u) => /alienware/i.test(u))).toBe(true);
+    expect(KABUM_BUSCA_URLS.some((u) => /lenovo|loq/i.test(u))).toBe(false);
+    expect(MARCAS_COM_SERIE).toContain('Acer');
     expect(MARCAS_COM_SERIE).toContain('Dell');
-    expect(MARCAS_COM_SERIE).toContain('Gigabyte');
+    expect(MARCAS_COM_SERIE).not.toContain('Lenovo');
     expect(gerarUrlsMercadoLivre().length).toBeGreaterThan(12);
     expect(gerarUrlsKabum().length).toBeGreaterThan(12);
   });

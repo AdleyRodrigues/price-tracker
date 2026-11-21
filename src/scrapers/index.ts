@@ -1,6 +1,7 @@
 import { FonteScraper } from '../types/oferta';
 import { amazonScraper } from './amazon';
 import { asusScraper } from './asus';
+import { avellScraper } from './avell';
 import { kabumScraper } from './kabum';
 import { magaluScraper } from './magalu';
 import { mercadoLivreScraper } from './mercadolivre';
@@ -18,6 +19,7 @@ import { reefKabumScraper } from './providers/reef-kabum';
 export const scrapers: FonteScraper[] = [
   amazonScraper,
   asusScraper,
+  avellScraper,
   promobitScraper,
   mercadoLivreScraper,
   qncScraper,

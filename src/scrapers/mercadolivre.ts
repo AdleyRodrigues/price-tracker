@@ -104,17 +104,29 @@ export const mercadoLivreScraper: FonteScraper = {
   async coletar(): Promise<Oferta[]> {
     const todasOfertas: Oferta[] = [];
 
-    // 1. Busca direta multi-marca (ASUS / Acer / Avell / Lenovo)
+    // 1. Busca direta multi-marca (ASUS / Acer / Avell / Lenovo / Dell / Gigabyte)
+    console.log(`[Mercado Livre] ${MERCADO_LIVRE_BUSCA_URLS.length} URLs multi-marca`);
     for (const url of MERCADO_LIVRE_BUSCA_URLS) {
       try {
-        const { data: html } = await http.get<string>(url, {
+        const res = await http.get<string>(url, {
           headers: {
             ...CHROME_HEADERS,
             Referer: 'https://www.mercadolivre.com.br/',
           },
           timeout: 8000,
+          validateStatus: () => true,
         });
 
+        if (res.status === 403 || res.status === 429) {
+          console.warn(`[Mercado Livre] HTTP ${res.status} (bloqueio) em ${url}`);
+          continue;
+        }
+        if (res.status >= 400) {
+          console.warn(`[Mercado Livre] HTTP ${res.status} em ${url}`);
+          continue;
+        }
+
+        const html = typeof res.data === 'string' ? res.data : '';
         if (ehChallengeMercadoLivre(html)) {
           console.warn(`[Mercado Livre] Challenge/captcha em ${url}`);
           continue;
@@ -122,7 +134,9 @@ export const mercadoLivreScraper: FonteScraper = {
 
         const ofertas = parsearBuscaMercadoLivre(html);
         if (ofertas.length === 0) {
-          console.warn(`[Mercado Livre] 0 cards parseados em ${url}`);
+          console.warn(`[Mercado Livre] 0 cards aceitos em ${url}`);
+        } else {
+          console.log(`[Mercado Livre] ${ofertas.length} oferta(s) em ${url}`);
         }
         todasOfertas.push(...ofertas);
       } catch (err) {

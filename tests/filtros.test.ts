@@ -43,22 +43,27 @@ describe('filtros domain', () => {
       expect(tituloBloqueado('Notebook Samsung Galaxy Book4 Ultra RTX 4070')).toBe(true);
     });
 
-    it('aceita notebooks das marcas e famílias suportadas (ASUS TUF, Avell, Lenovo LOQ, Acer Nitro V16, ASUS V16)', () => {
+    it('aceita notebooks das marcas e famílias suportadas (ASUS TUF, Avell, Acer Nitro V16)', () => {
       expect(
         tituloBloqueado('Notebook Gamer Avell Storm 560 Intel Core i7 RTX 5060 16GB 16" 16:10')
       ).toBe(false);
       expect(
         tituloBloqueado('Notebook Avell ION A70 AMD Ryzen 7 RTX 5060 16GB 16" WUXGA')
       ).toBe(false);
+      // Variações curtas de marketplace / loja oficial (sem "Notebook" ou sem "RTX")
+      expect(tituloBloqueado('Avell Storm 560 R7')).toBe(false);
+      expect(tituloBloqueado('Avell STORM 560 RTX 5060')).toBe(false);
+      expect(tituloBloqueado('Notebook Avell Storm 560')).toBe(false);
+      // Lenovo e ASUS Gaming V16 fora do escopo
       expect(
         tituloBloqueado('Notebook Gamer Lenovo LOQ 15 Intel Core i5 RTX 5060 16GB 15.6"')
-      ).toBe(false);
+      ).toBe(true);
       expect(
         tituloBloqueado('Notebook Gamer Acer Nitro V16 ANV16-41 Ryzen 7 RTX 5060 16"')
       ).toBe(false);
       expect(
         tituloBloqueado('Notebook ASUS Gaming V16 V3607VH RTX 5060 Intel Core 5 16GB 16"')
-      ).toBe(false);
+      ).toBe(true);
     });
 
     it('bloqueia notebooks ASUS que NÃO tenham tela 16:10 (ex: 15.6", 17.3", A15, F15 com 16:9)', () => {
@@ -124,17 +129,17 @@ describe('filtros domain', () => {
       ).toBe(true);
     });
 
-    it('aceita modelos da linha ASUS Gaming V16 / V3607 para monitoramento', () => {
+    it('bloqueia ASUS Gaming V16 / V3607 (TGP capado)', () => {
       expect(
         tituloBloqueado(
           'Laptop ASUS Gamer V16 V3607VH RTX 5050 Core 5 16GB RAM 512GB SSD 1920x1200'
         )
-      ).toBe(false);
+      ).toBe(true);
       expect(
         tituloBloqueado(
           'Notebook Asus Gaming V16 V3607vh Nvidia Rtx 5050 Intel Core 5 16gb Ram 512gb Ssd Windows 11'
         )
-      ).toBe(false);
+      ).toBe(true);
     });
 
     it('bloqueia séries premium fora do escopo (ROG Strix G16, Zephyrus M16)', () => {

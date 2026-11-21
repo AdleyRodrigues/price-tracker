@@ -5,7 +5,7 @@
  * Dell / Alienware / Gigabyte entram na coleta (premium no dash — Fase 2).
  */
 
-export const MARCAS_BUSCA = ['ASUS', 'Acer', 'Avell', 'Dell', 'Lenovo', 'Gigabyte'] as const;
+export const MARCAS_BUSCA = ['ASUS', 'Acer', 'Avell', 'Dell', 'Gigabyte'] as const;
 export type MarcaBusca = (typeof MARCAS_BUSCA)[number];
 
 /** Termos de busca por marca (sem "notebook" — o builder prefixa). */
@@ -15,14 +15,25 @@ export const TERMOS_POR_MARCA: Record<MarcaBusca, string[]> = {
     'asus tuf f16 rtx 5050',
     'asus tuf a16 rtx 5060',
     'asus tuf rtx 4060',
-    'asus gaming v16 rtx 5060',
   ],
-  Acer: ['acer nitro v16 rtx 5060', 'acer nitro anv16 rtx 5060'],
+  Acer: [
+    // Nitro V16 / ANV16 — 5050 e 5060
+    'acer nitro v16',
+    'acer nitro v16 rtx 5060',
+    'acer nitro v16 rtx 5050',
+    'acer nitro anv16',
+    'acer anv16 rtx 5060',
+    'acer anv16 rtx 5050',
+    'acer nitro v16 anv16',
+  ],
   Avell: [
-    'avell storm 560 rtx 5060',
+    // URLs alvo: notebook-avell-storm-560 / notebook-avell-ion-a70
     'avell storm 560',
-    'avell ion a70 rtx 5060',
+    'avell storm 560 rtx 5060',
+    'avell storm560',
+    'avell storm 560 r7',
     'avell ion a70',
+    'avell ion a70 rtx 5060',
     'avell rtx 5060',
   ],
   Dell: [
@@ -33,7 +44,6 @@ export const TERMOS_POR_MARCA: Record<MarcaBusca, string[]> = {
     'alienware m16 rtx 5060',
     'alienware x16 rtx',
   ],
-  Lenovo: ['lenovo loq rtx 5060', 'lenovo loq 15 rtx 5060', 'lenovo loq 16 rtx 5060'],
   Gigabyte: [
     'gigabyte aorus 16 rtx 4060',
     'gigabyte aorus 16 rtx 5060',
@@ -129,12 +139,11 @@ export function gerarUrlsPromobitApi(marcas: readonly MarcaBusca[] = MARCAS_BUSC
   return [...new Set(urls)];
 }
 
-/** Marcas ativas na coleta (inclui premium Dell/Gigabyte; Alienware via termos Dell). */
+/** Marcas ativas na coleta (Lenovo fora; premium Dell/Gigabyte; Alienware via termos Dell). */
 export const MARCAS_COM_SERIE: MarcaBusca[] = [
   'ASUS',
   'Acer',
   'Avell',
-  'Lenovo',
   'Dell',
   'Gigabyte',
 ];

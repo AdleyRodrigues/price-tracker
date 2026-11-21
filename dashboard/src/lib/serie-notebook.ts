@@ -127,7 +127,7 @@ export function classificarNotebook(chave: string, label = ''): ClassificacaoNot
   const gpu = gpuFamiliaNotebook(chave, label);
 
   // 1. Avell Storm 560
-  if (/storm\s*560|storm560/i.test(t) || chave.includes('storm560')) {
+  if (/storm[\s\-]*560|storm560/i.test(t) || chave.includes('storm560')) {
     return montar({
       serie: 'avell-storm',
       marca: 'Avell',
@@ -315,5 +315,9 @@ export function classificarNotebook(chave: string, label = ''): ClassificacaoNot
 
 export function ehNotebookPermitido(chave: string, label = ''): boolean {
   if (ehForaEscopoDash(chave, label)) return false;
+  const t = `${chave} ${label}`;
+  // Lenovo LOQ e ASUS Gaming V16 (TGP capado) fora do monitoramento
+  if (/loq|lenovo/i.test(t)) return false;
+  if (/asus_v3607|v3607|gam(?:ing|er)\s*v\s*16/i.test(t) && !/nitro/i.test(t)) return false;
   return classificarNotebook(chave, label).serie != null;
 }

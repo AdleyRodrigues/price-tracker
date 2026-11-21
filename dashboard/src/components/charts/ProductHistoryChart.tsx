@@ -51,10 +51,23 @@ export function ProductHistoryChart({
 
   const ultimo = data[data.length - 1]!;
 
+  const precos = data.map((p) => p.preco);
+  if (precoAtual != null) precos.push(precoAtual);
+  if (minimoHistorico != null) precos.push(minimoHistorico);
+  const yMin = Math.min(...precos);
+  const yMax = Math.max(...precos);
+  const pad = Math.max((yMax - yMin) * 0.12, yMin * 0.02, 50);
+  const domain: [number, number] = [Math.max(0, yMin - pad), yMax + pad];
+
+  const atualEqMinimo =
+    precoAtual != null &&
+    minimoHistorico != null &&
+    Math.abs(precoAtual - minimoHistorico) < 1;
+
   return (
-    <div className="h-72 w-full sm:h-80">
-      <ResponsiveContainer width="100%" height="100%">
-        <LineChart data={data} margin={{ top: 16, right: 12, left: 4, bottom: 4 }}>
+    <div className="h-72 w-full min-w-0 sm:h-80">
+      <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+        <LineChart data={data} margin={{ top: 28, right: 16, left: 4, bottom: 8 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.6} />
           <XAxis
             dataKey="label"
@@ -62,18 +75,19 @@ export function ProductHistoryChart({
             stroke="hsl(var(--muted-foreground))"
             interval="preserveStartEnd"
             minTickGap={28}
+            padding={{ left: 12, right: 12 }}
           />
           <YAxis
             tick={{ fontSize: 11 }}
             stroke="hsl(var(--muted-foreground))"
-            width={52}
+            width={56}
+            domain={domain}
             tickFormatter={(v) =>
               Number(v).toLocaleString('pt-BR', {
                 notation: 'compact',
                 maximumFractionDigits: 1,
               })
             }
-            domain={['auto', 'auto']}
           />
           <Tooltip
             content={
@@ -83,41 +97,58 @@ export function ProductHistoryChart({
               />
             }
           />
-          {precoAtual != null ? (
+          {atualEqMinimo && precoAtual != null ? (
             <ReferenceLine
               y={precoAtual}
-              stroke="#0369a1"
-              strokeDasharray="4 4"
-              strokeWidth={1.5}
-              label={{
-                value: `Atual ${formatBRL(precoAtual)}`,
-                position: 'insideTopRight',
-                fill: '#0369a1',
-                fontSize: 11,
-              }}
-            />
-          ) : null}
-          {minimoHistorico != null ? (
-            <ReferenceLine
-              y={minimoHistorico}
               stroke="#0f6b4c"
               strokeDasharray="4 4"
               strokeWidth={1.5}
               label={{
-                value: `Mín ${formatBRL(minimoHistorico)}`,
-                position: 'insideBottomRight',
+                value: `Atual = mín ${formatBRL(precoAtual)}`,
+                position: 'insideTopRight',
                 fill: '#0f6b4c',
                 fontSize: 11,
               }}
             />
-          ) : null}
+          ) : (
+            <>
+              {precoAtual != null ? (
+                <ReferenceLine
+                  y={precoAtual}
+                  stroke="#0369a1"
+                  strokeDasharray="4 4"
+                  strokeWidth={1.5}
+                  label={{
+                    value: `Atual ${formatBRL(precoAtual)}`,
+                    position: 'insideTopRight',
+                    fill: '#0369a1',
+                    fontSize: 11,
+                  }}
+                />
+              ) : null}
+              {minimoHistorico != null ? (
+                <ReferenceLine
+                  y={minimoHistorico}
+                  stroke="#0f6b4c"
+                  strokeDasharray="4 4"
+                  strokeWidth={1.5}
+                  label={{
+                    value: `Mín ${formatBRL(minimoHistorico)}`,
+                    position: 'insideBottomRight',
+                    fill: '#0f6b4c',
+                    fontSize: 11,
+                  }}
+                />
+              ) : null}
+            </>
+          )}
           <Line
             type="monotone"
             dataKey="preco"
             name="Preço"
             stroke={stroke}
             strokeWidth={2.5}
-            dot={false}
+            dot={data.length < 4 ? { r: 4, strokeWidth: 0, fill: stroke } : false}
             activeDot={{ r: 5 }}
             isAnimationActive={false}
           />
@@ -131,7 +162,7 @@ export function ProductHistoryChart({
               strokeWidth={2}
             />
           ) : null}
-          {ultimo ? (
+          {ultimo && (!minPonto || ultimo.coletadoEm !== minPonto.coletadoEm) ? (
             <ReferenceDot
               x={ultimo.label}
               y={ultimo.preco}

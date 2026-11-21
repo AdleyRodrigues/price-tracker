@@ -63,12 +63,12 @@ export const TGP_MIN_APROVADO_4K = 100;
 
 export const VALIDA_NOTEBOOK = /notebook|laptop/i;
 export const VALIDA_MARCAS_PERMITIDAS =
-  /\b(asus|avell|lenovo|acer|dell|alienware|gigabyte|aorus)\b/i;
+  /\b(asus|avell|acer|dell|alienware|gigabyte|aorus)\b/i;
 // Retrocompatibilidade para módulos que importam VALIDA_MARCA_ASUS
 export const VALIDA_MARCA_ASUS = VALIDA_MARCAS_PERMITIDAS;
 export const VALIDA_GPU = /(?:rtx\s*)?(?:4060|5050|5060)/i;
 export const VALIDA_TELA_16_10 =
-  /(?:16:10|16\/10|16\s*por\s*10|1920\s*x\s*1200|2560\s*x\s*1600|2880\s*x\s*1800|3200\s*x\s*2000|3840\s*x\s*2400|wuxga|wqxga|qhd\+|fhd\+|uhd\+|16(?:\.0)?\s*(?:"|''|”|pol|polegadas|pols)(?!\s*(?:gb|ram|ssd|ddr))|\b16\.0\b|\b14\.5\s*(?:"|pol)|\b(?:a16|f16|v16|v3607|storm|ion|loq|anv16|nitro|fx607|fx608|fa607|fa608|g15|g16|m16|x16|aorus|g6kf|g6)\b)/i;
+  /(?:16:10|16\/10|16\s*por\s*10|1920\s*x\s*1200|2560\s*x\s*1600|2880\s*x\s*1800|3200\s*x\s*2000|3840\s*x\s*2400|wuxga|wqxga|qhd\+|fhd\+|uhd\+|16(?:\.0)?\s*(?:"|''|”|pol|polegadas|pols)(?!\s*(?:gb|ram|ssd|ddr))|\b16\.0\b|\b14\.5\s*(?:"|pol)|\b(?:a16|f16|storm|ion|anv16|nitro\s*v\s*16|fx607|fx608|fa607|fa608|g15|g16|m16|x16|aorus|g6kf|g6)\b)/i;
 
 export const OFERTA_ENCERRADA =
   /encerrada|expirada|expired|finished|closed|inativ[ao]|esgotad|indispon[íi]vel/i;
@@ -78,10 +78,10 @@ export const QNC_BUSCA_URLS = [
   'https://quenotebookcomprar.com.br/?s=asus+tuf+rtx',
   'https://quenotebookcomprar.com.br/ofertas/?marca=asus',
   'https://quenotebookcomprar.com.br/ofertas/?gpu=rtx-4060,rtx-5050,rtx-5060',
-  'https://quenotebookcomprar.com.br/?s=lenovo+loq',
   'https://quenotebookcomprar.com.br/?s=avell+storm',
   'https://quenotebookcomprar.com.br/?s=nitro+v16',
-  'https://quenotebookcomprar.com.br/?s=asus+v16',
+  'https://quenotebookcomprar.com.br/?s=acer+nitro+v16',
+  'https://quenotebookcomprar.com.br/?s=anv16',
 ];
 
 /** URLs geradas por marca (inclui Dell / Gigabyte premium). */

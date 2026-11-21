@@ -1,4 +1,4 @@
-import { memo, useMemo, useState } from 'react';
+import { memo, useMemo } from 'react';
 import {
   CartesianGrid,
   Legend,
@@ -9,7 +9,6 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
-import type { CategoricalChartState } from 'recharts/types/chart/types';
 import { LazyChartMount } from '@/components/charts/LazyChartMount';
 import { downsample } from '@/lib/downsample';
 import { formatBRL, formatDateTime, formatRelativeTime } from '@/lib/format';
@@ -26,8 +25,10 @@ function colorFor(chave: string, index: number): string {
   return known[chave] ?? PALETTE[index % PALETTE.length]!;
 }
 
+type Row = { coletadoEm: string; label: string;[key: string]: string | number | null };
+
 type Props = {
-  data: Array<{ coletadoEm: string; label: string;[key: string]: string | number | null }>;
+  data: Row[];
   produtos: string[];
   labels?: Record<string, string>;
   titulo?: string;
@@ -43,76 +44,87 @@ function formatarLabelSeries(rawLabel: string, ocultarGpu: boolean): string {
   return rawLabel.replace(/(?:\s*·\s*|\s+)RTX\s*\d{4}(?:\s*Ti)?/gi, '').trim();
 }
 
-type SerieInfo = { chave: string; label: string; color: string };
-
-type HoverInfo = {
-  chave: string;
-  dataLabel: string;
-  nome: string;
-  valor: number;
-  color: string;
-};
+type SerieInfo = { chave: string; label: string; color: string; pontosReais: number };
 
 /**
- * Com shared={false} o Recharts expõe yValue = yScale.invert(chartY).
- * Escolhemos a série cujo preço no X ativo está mais perto desse yValue.
+ * Propaga o último preço conhecido de cada série (após a 1ª observação).
+ * Sem isso, marcas novas (1–2 snapshots) somem no downsample de 90 dias.
  */
-function resolverHover(
-  state: CategoricalChartState,
-  chartData: Props['data'],
-  series: SerieInfo[]
-): HoverInfo | null {
-  const yValue = state.yValue;
-  const index = state.activeTooltipIndex;
-  if (yValue == null || !Number.isFinite(yValue) || index == null || index < 0) {
-    return null;
-  }
-
-  const row = chartData[index];
-  if (!row) return null;
-
-  let melhor: SerieInfo | null = null;
-  let melhorDist = Infinity;
-  for (const s of series) {
-    const v = Number(row[s.chave]);
-    if (!Number.isFinite(v)) continue;
-    const dist = Math.abs(v - Number(yValue));
-    if (dist < melhorDist) {
-      melhorDist = dist;
-      melhor = s;
+function forwardFill(data: Row[], chaves: string[]): Row[] {
+  const last = new Map<string, number>();
+  return data.map((row) => {
+    const next: Row = { ...row };
+    for (const chave of chaves) {
+      const raw = row[chave];
+      const n = typeof raw === 'number' ? raw : Number(raw);
+      if (raw != null && Number.isFinite(n) && n > 0) {
+        last.set(chave, n);
+        next[chave] = n;
+      } else if (last.has(chave)) {
+        next[chave] = last.get(chave)!;
+      } else {
+        next[chave] = null;
+      }
     }
-  }
-  if (!melhor) return null;
-
-  const valor = Number(row[melhor.chave]);
-  if (!Number.isFinite(valor)) return null;
-
-  return {
-    chave: melhor.chave,
-    dataLabel: String(row.label ?? state.activeLabel ?? ''),
-    nome: melhor.label,
-    valor,
-    color: melhor.color,
-  };
+    return next;
+  });
 }
 
-function MarketPulseTooltip({ hover }: { hover: HoverInfo | null }) {
-  if (!hover) return null;
+type PayloadItem = {
+  value?: number | string | null;
+  name?: string;
+  color?: string;
+  dataKey?: string | number;
+};
+
+/** Tooltip compartilhado: todos os modelos na data sob o cursor. */
+function MarketPulseTooltip({
+  active,
+  label,
+  payload,
+}: {
+  active?: boolean;
+  label?: string | number;
+  payload?: PayloadItem[];
+}) {
+  if (!active || !payload?.length) return null;
+
+  const itens = payload
+    .filter((p) => p.value != null && Number.isFinite(Number(p.value)) && Number(p.value) > 0)
+    .map((p) => ({
+      nome: String(p.name ?? p.dataKey ?? ''),
+      valor: Number(p.value),
+      color: String(p.color ?? '#0f6b4c'),
+      key: String(p.dataKey ?? p.name ?? ''),
+    }))
+    .sort((a, b) => a.valor - b.valor);
+
+  if (!itens.length) return null;
 
   return (
     <div
-      className="pointer-events-none z-[60] max-w-[14rem] rounded-lg border border-border px-2.5 py-1.5 text-xs shadow-md"
+      className="pointer-events-none z-[60] max-w-[16rem] rounded-lg border border-border px-2.5 py-1.5 text-xs shadow-md"
       style={{ backgroundColor: '#ffffff' }}
     >
-      <p className="mb-0.5 truncate font-semibold text-foreground">{hover.dataLabel}</p>
-      <p
-        className="mb-1 truncate font-medium leading-snug"
-        style={{ color: hover.color }}
-        title={hover.nome}
-      >
-        {hover.nome}
-      </p>
-      <p className="tabular-nums font-semibold text-foreground">{formatBRL(hover.valor)}</p>
+      {label != null ? (
+        <p className="mb-1.5 truncate font-semibold text-foreground">{String(label)}</p>
+      ) : null}
+      <ul className="space-y-1">
+        {itens.map((item) => (
+          <li key={item.key} className="flex items-baseline justify-between gap-3">
+            <span
+              className="min-w-0 truncate font-medium leading-snug"
+              style={{ color: item.color }}
+              title={item.nome}
+            >
+              {item.nome}
+            </span>
+            <span className="shrink-0 tabular-nums font-semibold text-foreground">
+              {formatBRL(item.valor)}
+            </span>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }
@@ -131,29 +143,33 @@ export const MarketPulseChart = memo(function MarketPulseChart({
   const gpuNoHeader = Boolean((titulo + ' ' + (eyebrow ?? '')).match(/rtx\s*\d{4}/i));
   const deveOcultarGpu = ocultarGpu ?? gpuNoHeader;
 
-  const series = useMemo(
+  const series = useMemo<SerieInfo[]>(
     () =>
       produtos.map((chave, i) => {
         const rawLabel = labels[chave] ?? chave;
+        let pontosReais = 0;
+        for (const row of data) {
+          const v = row[chave];
+          if (v != null && Number.isFinite(Number(v)) && Number(v) > 0) pontosReais += 1;
+        }
         return {
           chave,
           label: formatarLabelSeries(rawLabel, deveOcultarGpu),
           color: colorFor(chave, i),
+          pontosReais,
         };
       }),
-    [produtos, labels, deveOcultarGpu]
+    [produtos, labels, deveOcultarGpu, data]
   );
 
-  const chartData = useMemo(() => downsample(data, MAX_PONTOS_CHART), [data]);
-  const [hover, setHover] = useState<HoverInfo | null>(null);
+  const chartData = useMemo(() => {
+    const filled = forwardFill(data, produtos);
+    return downsample(filled, MAX_PONTOS_CHART);
+  }, [data, produtos]);
 
   const ultimoPonto =
     atualizadoEm ??
     (data.length ? String(data[data.length - 1]?.coletadoEm ?? '') || null : null);
-
-  const onChartMouseMove = (state: CategoricalChartState) => {
-    setHover(resolverHover(state, chartData, series));
-  };
 
   return (
     <section className="market-panel relative overflow-visible p-5 sm:p-6 hover:z-30">
@@ -179,12 +195,7 @@ export const MarketPulseChart = memo(function MarketPulseChart({
       ) : (
         <LazyChartMount eager={eager} minHeight={288} className="h-72 w-full sm:h-80">
           <ResponsiveContainer width="100%" height="100%" debounce={120}>
-            <LineChart
-              data={chartData}
-              margin={{ top: 8, right: 8, left: 0, bottom: 8 }}
-              onMouseMove={onChartMouseMove}
-              onMouseLeave={() => setHover(null)}
-            >
+            <LineChart data={chartData} margin={{ top: 8, right: 8, left: 0, bottom: 8 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
               <XAxis
                 dataKey="label"
@@ -203,8 +214,8 @@ export const MarketPulseChart = memo(function MarketPulseChart({
                 }
               />
               <Tooltip
-                shared={false}
-                content={<MarketPulseTooltip hover={hover} />}
+                shared
+                content={<MarketPulseTooltip />}
                 wrapperStyle={{ outline: 'none', zIndex: 50 }}
                 allowEscapeViewBox={{ x: true, y: true }}
                 isAnimationActive={false}
@@ -215,7 +226,7 @@ export const MarketPulseChart = memo(function MarketPulseChart({
                 wrapperStyle={{ fontSize: 11, paddingTop: 8, lineHeight: '1.35' }}
               />
               {series.map((s) => {
-                const destacada = !hover || hover.chave === s.chave;
+                const esparsa = s.pontosReais < 4;
                 return (
                   <Line
                     key={s.chave}
@@ -223,16 +234,11 @@ export const MarketPulseChart = memo(function MarketPulseChart({
                     dataKey={s.chave}
                     name={s.label}
                     stroke={s.color}
-                    strokeWidth={hover?.chave === s.chave ? 2.5 : 2}
-                    strokeOpacity={destacada ? 1 : 0.28}
+                    strokeWidth={2}
                     connectNulls
                     isAnimationActive={false}
-                    dot={false}
-                    activeDot={
-                      hover?.chave === s.chave
-                        ? { r: 5, strokeWidth: 2, stroke: '#fff' }
-                        : false
-                    }
+                    dot={esparsa ? { r: 3, strokeWidth: 0, fill: s.color } : false}
+                    activeDot={{ r: 5, strokeWidth: 2, stroke: '#fff' }}
                   />
                 );
               })}

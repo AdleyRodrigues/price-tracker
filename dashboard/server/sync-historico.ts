@@ -63,10 +63,19 @@ function remoteDbUrlForSha(sha: string): string {
 
 /**
  * Baixa historico.db da branch historico-data (Actions) para o SQLite local.
+ *
+ * Defina HISTORICO_SKIP_REMOTE_SYNC=1 para NÃO sobrescrever o SQLite local
+ * (útil após `pnpm start` / scrape local com Acer/Lenovo/Avell).
  */
 export async function syncHistoricoFromRemote(opts?: {
   force?: boolean;
 }): Promise<{ updated: boolean; reason: string; remoteAt?: string }> {
+  const skip =
+    /^(1|true|yes|on)$/i.test(process.env.HISTORICO_SKIP_REMOTE_SYNC?.trim() ?? '');
+  if (skip) {
+    return { updated: false, reason: 'skip-remote-sync' };
+  }
+
   const dbUrl = process.env.TURSO_DATABASE_URL?.trim();
   if (!dbUrl?.startsWith('file:')) {
     return { updated: false, reason: 'nao-local-file' };

@@ -174,14 +174,37 @@ async function rasparItemKabum(item: ItemCatalogo): Promise<Oferta[]> {
 
 async function rasparBuscaKabum(url: string): Promise<Oferta[]> {
   try {
-    const { data: html } = await http.get<string>(url, {
+    const res = await http.get<string>(url, {
       headers: {
         ...CHROME_HEADERS,
         Referer: 'https://www.kabum.com.br/',
       },
       timeout: 12000,
+      validateStatus: () => true,
     });
-    return parsearBuscaKabum(html);
+
+    if (res.status === 403 || res.status === 429) {
+      console.warn(`[KaBuM!] HTTP ${res.status} (bloqueio) em ${url}`);
+      return [];
+    }
+    if (res.status >= 400) {
+      console.warn(`[KaBuM!] HTTP ${res.status} em ${url}`);
+      return [];
+    }
+
+    const html = typeof res.data === 'string' ? res.data : '';
+    if (!html.includes('__NEXT_DATA__')) {
+      console.warn(`[KaBuM!] Sem __NEXT_DATA__ em ${url} (possível bloqueio/HTML vazio)`);
+      return [];
+    }
+
+    const ofertas = parsearBuscaKabum(html);
+    if (ofertas.length === 0) {
+      console.warn(`[KaBuM!] 0 cards aceitos em ${url}`);
+    } else {
+      console.log(`[KaBuM!] ${ofertas.length} oferta(s) em ${url}`);
+    }
+    return ofertas;
   } catch (err) {
     console.warn(`[KaBuM!] Busca ${url} falhou: ${detalheErro(err)}`);
     return [];
@@ -206,6 +229,7 @@ export const kabumScraper: FonteScraper = {
     const todas: Oferta[] = [];
 
     // 1. Busca multi-marca (Avell, LOQ, Nitro, TUF…)
+    console.log(`[KaBuM!] ${KABUM_BUSCA_URLS.length} URLs multi-marca`);
     for (const url of KABUM_BUSCA_URLS) {
       const ofertas = await rasparBuscaKabum(url);
       todas.push(...ofertas);

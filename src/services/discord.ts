@@ -113,7 +113,7 @@ export function montarPayloadDiscord(
         description:
           `Comparativo Notebooks Gamer 4K TV (Top ${lugares.length}) para o CEP **${cep}**.\n` +
           `Melhor oferta: **${melhor.loja}** por **${formatBRL(menorPrecoEfetivo)}**\n` +
-          `Modelos monitorados: ASUS TUF (F16/A16), Avell (Storm 560/ION A70), Lenovo LOQ, Acer Nitro V16 e ASUS V16.\n\n` +
+          `Modelos monitorados: ASUS TUF (F16/A16), Avell (Storm 560/ION A70) e Acer Nitro V16.\n\n` +
           `${melhor.titulo}`,
         color: corDoVencedor(melhor.loja),
         fields,

@@ -47,7 +47,7 @@ export function ProductDetailModal({
   modulo = 'notebooks',
   stroke = '#0f6b4c',
 }: Props) {
-  const [janela, setJanela] = useState<Janela>(30);
+  const [janela, setJanela] = useState<Janela>(90);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<HistoricoResponse | null>(null);
@@ -100,8 +100,8 @@ export function ProductDetailModal({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="!inset-x-4 !inset-y-auto !bottom-auto !left-1/2 !right-auto !top-[3vh] !max-h-[94vh] !w-[min(100%,52rem)] !max-w-3xl !-translate-x-1/2 overflow-y-auto rounded-2xl border bg-card shadow-2xl sm:!inset-x-auto">
-        <SheetHeader className="space-y-1.5 pr-8">
+      <SheetContent className="!inset-auto !left-1/2 !top-1/2 !right-auto !bottom-auto !h-auto !max-h-[min(92vh,52rem)] !w-[calc(100%-1.5rem)] !max-w-3xl !-translate-x-1/2 !-translate-y-1/2 overflow-y-auto !rounded-2xl !border !border-border !border-l bg-card !p-5 shadow-2xl sm:!w-[calc(100%-2rem)] sm:!p-6">
+        <SheetHeader className="space-y-1.5 pr-8 text-left">
           <p className="text-[0.65rem] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
             Linha do tempo · preço
           </p>
@@ -118,8 +118,8 @@ export function ProductDetailModal({
                 type="button"
                 onClick={() => setJanela(d)}
                 className={`rounded-md px-3 py-1.5 font-semibold transition ${janela === d
-                    ? 'bg-primary text-primary-foreground shadow-sm'
-                    : 'text-muted-foreground hover:text-foreground'
+                  ? 'bg-primary text-primary-foreground shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground'
                   }`}
               >
                 {d} dias
@@ -165,7 +165,7 @@ export function ProductDetailModal({
           </div>
         </div>
 
-        <div className="mt-4 overflow-hidden rounded-xl border bg-background/60 p-2 sm:p-4">
+        <div className="mt-4 min-w-0 overflow-hidden rounded-xl border bg-background/60 p-2 sm:p-4">
           {loading ? (
             <Skeleton className="h-72 w-full rounded-lg" />
           ) : error ? (
@@ -174,7 +174,9 @@ export function ProductDetailModal({
             </p>
           ) : (
             <Suspense fallback={<Skeleton className="h-72 w-full rounded-lg" />}>
+              {/* key força o ResponsiveContainer a medir a largura já centralizada */}
               <ProductHistoryChart
+                key={`${produtoChave}-${janela}-${serie.length}`}
                 serie={serie}
                 precoAtual={precoAtual}
                 minimoHistorico={minimoHistorico}

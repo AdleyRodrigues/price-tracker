@@ -1,4 +1,4 @@
-name: Monitor - ASUS 16:10 (RTX 4060 / 5050 / 5060)
+name: Monitor - Notebooks multi-marca (RTX 4060 / 5050 / 5060)
 
 on:
   schedule:
@@ -15,7 +15,8 @@ permissions:
 jobs:
   track:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    # Multi-marca (ASUS/Acer/Avell/Lenovo/Dell/Gigabyte) + Avell oficial → mais URLs
+    timeout-minutes: 15
     steps:
       - name: Checkout
         uses: actions/checkout@v4

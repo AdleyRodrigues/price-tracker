@@ -38,6 +38,9 @@ app.get('/api/sync-status', (c) =>
   c.json({
     lastSyncIso: getLastHistoricoSyncIso(),
     dbConfigured: isDbConfigured(),
+    skipRemoteSync: /^(1|true|yes|on)$/i.test(
+      process.env.HISTORICO_SKIP_REMOTE_SYNC?.trim() ?? ''
+    ),
   })
 );
 
@@ -48,11 +51,30 @@ app.post('/api/sync-historico', async (c) => {
     return c.json({
       ok: true,
       lastSyncIso: getLastHistoricoSyncIso(),
+      skipRemoteSync: /^(1|true|yes|on)$/i.test(
+        process.env.HISTORICO_SKIP_REMOTE_SYNC?.trim() ?? ''
+      ),
     });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     return c.json({ ok: false, error: msg }, 500);
   }
+});
+
+/**
+ * Reabre o client SQLite no arquivo local (TURSO_DATABASE_URL) sem baixar o remoto.
+ * Use depois de um scrape local: o boot sync não precisa ter sobrescrito o DB.
+ */
+app.post('/api/reload-local-db', async (c) => {
+  const { resetDbClient, isDbConfigured: configured } = await import('./db');
+  if (!configured()) {
+    return c.json({ ok: false, error: 'db-nao-configurado' }, 400);
+  }
+  resetDbClient();
+  return c.json({
+    ok: true,
+    hint: 'Client reaberto. Com HISTORICO_SKIP_REMOTE_SYNC=1 o arquivo local não é sobrescrito.',
+  });
 });
 
 app.route('/api', api);

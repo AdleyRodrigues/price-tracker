@@ -23,19 +23,18 @@ type MarcaFiltro =
   | 'todas'
   | 'ASUS'
   | 'Avell'
-  | 'Lenovo'
   | 'Acer'
   | 'Dell'
   | 'Alienware'
   | 'Gigabyte';
 
-const MARCAS_COMUNS = ['todas', 'ASUS', 'Avell', 'Lenovo', 'Acer'] as const;
+const MARCAS_COMUNS = ['todas', 'ASUS', 'Avell', 'Acer'] as const;
 const MARCAS_PREMIUM = ['Dell', 'Alienware', 'Gigabyte'] as const;
 
 export function OverviewPage() {
   const [params] = useSearchParams();
   const modulo = parseModulo(params.get('modulo'));
-  const [dias, setDias] = useState('30');
+  const [dias, setDias] = useState('90');
   const [data, setData] = useState<OverviewInsightsResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -129,6 +128,42 @@ export function OverviewPage() {
   const destaques4k = useMemo(() => {
     if (modulo !== 'notebooks') return null;
     return calcularDestaques4k(produtosGridExibidos);
+  }, [modulo, produtosGridExibidos]);
+
+  /** Gráficos de histórico por família de GPU (respeita filtros da barra). */
+  const notebookCharts = useMemo(() => {
+    if (modulo !== 'notebooks') return [];
+    const buckets: Array<{
+      id: string;
+      eyebrow: string;
+      titulo: string;
+      keys: string[];
+    }> = [
+        {
+          id: '5060',
+          eyebrow: 'Market pulse · RTX 5060',
+          titulo: 'Menor preço — RTX 5060',
+          keys: [],
+        },
+        {
+          id: '5050',
+          eyebrow: 'Market pulse · RTX 5050',
+          titulo: 'Menor preço — RTX 5050',
+          keys: [],
+        },
+        {
+          id: '4060',
+          eyebrow: 'Market pulse · RTX 4060',
+          titulo: 'Menor preço — RTX 4060',
+          keys: [],
+        },
+      ];
+    for (const p of produtosGridExibidos) {
+      const gpu = classificarNotebook(p.produtoChave, p.label).gpu;
+      const bucket = buckets.find((b) => b.id === gpu);
+      if (bucket) bucket.keys.push(p.produtoChave);
+    }
+    return buckets.filter((b) => b.keys.length > 0);
   }, [modulo, produtosGridExibidos]);
 
   const alerta8gb = destaques4k?.alerta8gb;
@@ -323,13 +358,27 @@ export function OverviewPage() {
                 produtos={produtosGridExibidos}
                 marcaAtiva={marcaFiltro === 'todas' ? null : marcaFiltro}
               />
+
+              {notebookCharts.map((chart) => (
+                <MarketPulseChart
+                  key={chart.id}
+                  data={data.seriesComparativo}
+                  produtos={chart.keys}
+                  labels={labelsByChave}
+                  eyebrow={chart.eyebrow}
+                  titulo={chart.titulo}
+                  subtitulo={`${chart.keys.length} modelo(s) · janela de ${dias} dias`}
+                  ocultarGpu
+                  atualizadoEm={data.kpis.ultimaColeta}
+                />
+              ))}
             </div>
           ) : (
             <MarketPulseChart
               data={data.seriesComparativo}
               produtos={seriesKeys}
               labels={labelsByChave}
-              subtitulo={`${seriesKeys.length} celulares · uma linha por modelo`}
+              subtitulo={`${seriesKeys.length} celulares · uma linha por modelo · ${dias} dias`}
               atualizadoEm={data.kpis.ultimaColeta}
             />
           )}

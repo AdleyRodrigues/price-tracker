@@ -161,8 +161,9 @@ export function obterPerfilChassi(textoOuChave: string): PerfilChassi {
   const t = textoOuChave.toLowerCase();
 
   // 1. Avell Storm / ION
-  if (/storm\s*560|storm560/i.test(t)) return perfilComTgpEfetivo(PERFIS_CHASSI.avell_storm560!, t);
-  if (/ion\s*a70|iona70/i.test(t)) return perfilComTgpEfetivo(PERFIS_CHASSI.avell_iona70!, t);
+  if (/storm[\s\-]*560|storm560/i.test(t)) return perfilComTgpEfetivo(PERFIS_CHASSI.avell_storm560!, t);
+  if (/ion[\s\-]*a\s*70|ion[\s\-]*a70|iona70/i.test(t))
+    return perfilComTgpEfetivo(PERFIS_CHASSI.avell_iona70!, t);
 
   // 2. Lenovo LOQ
   if (/loq/i.test(t)) return perfilComTgpEfetivo(PERFIS_CHASSI.lenovo_loq!, t);
