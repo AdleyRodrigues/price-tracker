@@ -2,7 +2,7 @@ name: Monitor - Notebooks multi-marca (RTX 4060 / 5050 / 5060)
 
 on:
   schedule:
-    - cron: '0 */4 * * *'
+    - cron: '0 */2 * * *'
   workflow_dispatch:
 
 concurrency:
