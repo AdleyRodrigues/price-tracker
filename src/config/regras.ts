@@ -3,6 +3,7 @@ import {
   MARCAS_COM_SERIE,
   TERMOS_POR_MARCA,
   gerarUrlsKabum,
+  gerarUrlsMagalu,
   gerarUrlsMercadoLivre,
   gerarUrlsPromobitApi,
   queryBusca,
@@ -30,6 +31,8 @@ export const AMAZON_BUSCA_URLS = MARCAS_COM_SERIE.flatMap((marca) =>
 );
 
 export const KABUM_BUSCA_URLS = gerarUrlsKabum(MARCAS_COM_SERIE);
+
+export const MAGALU_BUSCA_URLS = gerarUrlsMagalu(MARCAS_COM_SERIE);
 
 export const ASUS_BUSCA_URLS = [
   'https://br.store.asus.com/catalogsearch/result/?q=tuf',

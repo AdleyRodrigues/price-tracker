@@ -2,12 +2,14 @@ import { describe, expect, it } from 'vitest';
 import {
   MARCAS_COM_SERIE,
   gerarUrlsKabum,
+  gerarUrlsMagalu,
   gerarUrlsMercadoLivre,
   slugBusca,
   urlKabumBusca,
+  urlMagaluBusca,
   urlMercadoLivre,
 } from '../src/config/busca-multi-marca';
-import { KABUM_BUSCA_URLS, MERCADO_LIVRE_BUSCA_URLS } from '../src/config/regras';
+import { AMAZON_BUSCA_URLS, KABUM_BUSCA_URLS, MAGALU_BUSCA_URLS, MERCADO_LIVRE_BUSCA_URLS } from '../src/config/regras';
 import {
   ehSerieForaEscopo,
   identificarProdutoChaveNotebook,
@@ -45,6 +47,16 @@ describe('busca multi-marca', () => {
     expect(urlKabumBusca('alienware m16 rtx 4060')).toContain(
       'notebook-alienware-m16-rtx-4060'
     );
+  });
+
+  it('URL Magalu e Amazon multi-marca ativas', () => {
+    expect(urlMagaluBusca('asus tuf rtx 4060')).toBe(
+      'https://www.magazineluiza.com.br/busca/notebook+asus+tuf+rtx+4060/'
+    );
+    expect(gerarUrlsMagalu(['ASUS']).length).toBeGreaterThan(0);
+    expect(MAGALU_BUSCA_URLS.some((u) => /asus|acer|avell/i.test(u))).toBe(true);
+    expect(AMAZON_BUSCA_URLS.some((u) => /dell|gigabyte|acer/i.test(u))).toBe(true);
+    expect(AMAZON_BUSCA_URLS.length).toBeGreaterThan(8);
   });
 
   it('expõe Acer, Avell, Dell e Gigabyte — sem Lenovo', () => {

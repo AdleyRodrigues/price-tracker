@@ -108,6 +108,25 @@ export function urlAmazon(termo: string): string {
   return `https://www.amazon.com.br/s?k=${queryBusca(comNotebook)}`;
 }
 
+/**
+ * Magalu busca:
+ * https://www.magazineluiza.com.br/busca/notebook+asus+tuf/
+ */
+export function urlMagaluBusca(termo: string): string {
+  const comNotebook = /\bnotebook\b/i.test(termo) ? termo : `notebook ${termo}`;
+  return `https://www.magazineluiza.com.br/busca/${queryBusca(comNotebook)}/`;
+}
+
+export function gerarUrlsMagalu(marcas: readonly MarcaBusca[] = MARCAS_BUSCA): string[] {
+  const urls: string[] = [];
+  for (const marca of marcas) {
+    for (const termo of TERMOS_POR_MARCA[marca]) {
+      urls.push(urlMagaluBusca(termo));
+    }
+  }
+  return [...new Set(urls)];
+}
+
 /** Todas as URLs ML geradas a partir das marcas. */
 export function gerarUrlsMercadoLivre(marcas: readonly MarcaBusca[] = MARCAS_BUSCA): string[] {
   const urls: string[] = [];
