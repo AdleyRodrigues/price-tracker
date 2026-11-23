@@ -10,11 +10,11 @@ type Props = {
 
 export function InsightStat({ label, value, hint, className }: Props) {
   return (
-    <div className={cn('rounded-xl border border-border/80 bg-card/70 p-4', className)}>
-      <p className="text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-        {label}
+    <div className={cn('market-panel p-4', className)}>
+      <p className="text-eyebrow">{label}</p>
+      <p className="mt-2 font-display text-xl font-bold tracking-tight tabular-price text-ink">
+        {value}
       </p>
-      <p className="mt-2 font-display text-xl font-bold tracking-tight tabular-price">{value}</p>
       {hint ? <p className="mt-1 text-xs text-muted-foreground">{hint}</p> : null}
     </div>
   );

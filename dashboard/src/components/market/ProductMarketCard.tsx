@@ -13,6 +13,7 @@ import {
   foraDoOrcamento,
 } from '@/lib/serie-notebook';
 import { custoBeneficio4k, specsFromLabel } from '@/lib/custo-beneficio';
+import { CupomBadge } from './CupomBadge';
 
 const STROKES = ['#0f6b4c', '#e8913a', '#0369a1', '#be123c', '#0f766e', '#a16207'];
 
@@ -22,6 +23,7 @@ type Props = {
   menorPreco: number | null;
   lojaMenorPreco: string | null;
   urlMenorPreco?: string | null;
+  cupomTag?: string | null;
   coletadoEm: string | null;
   variacao7d: number | null;
   totalSnapshots: number;
@@ -36,6 +38,7 @@ export const ProductMarketCard = memo(function ProductMarketCard({
   menorPreco,
   lojaMenorPreco,
   urlMenorPreco,
+  cupomTag,
   coletadoEm,
   variacao7d,
   sparkline,
@@ -68,7 +71,6 @@ export const ProductMarketCard = memo(function ProductMarketCard({
       : notebookInfo.cls.linhaLabel || label;
   }, [notebookInfo, label]);
 
-  /** Menor preço no histórico da janela (sparkline) + data em que apareceu. */
   const minimoHistorico = useMemo(() => {
     if (!sparkline.length) return null;
     let best = sparkline[0]!;
@@ -86,11 +88,11 @@ export const ProductMarketCard = memo(function ProductMarketCard({
     economiaVsHistorico != null && Math.abs(economiaVsHistorico) < 1;
 
   return (
-    <div className="market-panel group overflow-hidden">
+    <div className="market-panel group overflow-hidden transition-[border-color,box-shadow] duration-200 hover:border-primary/40">
       <Link to={detailTo} className="block p-5">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <h3 className="font-display text-base font-bold leading-snug tracking-tight sm:text-lg">
+            <h3 className="font-display text-base font-bold leading-snug tracking-tight text-ink sm:text-lg">
               {tituloExibicao}
             </h3>
             <p className="mt-1 text-sm text-muted-foreground">
@@ -105,47 +107,33 @@ export const ProductMarketCard = memo(function ProductMarketCard({
         {notebookInfo ? (
           <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
             {notebookInfo.cls.categoriaTgp === 'full_power' ? (
-              <span className="inline-flex items-center gap-1 rounded bg-emerald-500/10 px-1.5 py-0.5 text-[0.68rem] font-semibold text-emerald-700 border border-emerald-500/20">
-                ⚡ TGP {notebookInfo.cls.tgpWatts}W Full
-              </span>
+              <span className="chip-good">TGP {notebookInfo.cls.tgpWatts}W Full</span>
             ) : notebookInfo.cls.categoriaTgp === 'balanceado' ? (
-              <span className="inline-flex items-center gap-1 rounded bg-sky-500/10 px-1.5 py-0.5 text-[0.68rem] font-semibold text-sky-700 border border-sky-500/20">
-                ⚡ TGP {notebookInfo.cls.tgpWatts}W Bal.
-              </span>
+              <span className="chip-meta">TGP {notebookInfo.cls.tgpWatts}W Bal.</span>
             ) : (
-              <span className="inline-flex items-center gap-1 rounded bg-amber-500/15 px-1.5 py-0.5 text-[0.68rem] font-semibold text-amber-800 border border-amber-500/30">
-                ⚠️ TGP {notebookInfo.cls.tgpWatts}W Slim
-              </span>
+              <span className="chip-warn">TGP {notebookInfo.cls.tgpWatts}W Slim</span>
             )}
-            <span className="inline-flex items-center gap-1 rounded bg-muted/60 px-1.5 py-0.5 text-[0.68rem] font-medium text-muted-foreground">
-              {notebookInfo.cls.suporta4k120Hz ? '📺 HDMI 2.1 FRL' : '📺 HDMI TMDS'}
+            <span className="chip-meta">
+              {notebookInfo.cls.suporta4k120Hz ? 'HDMI 2.1' : 'HDMI TMDS'}
             </span>
             {notebookInfo.specs.ramGb ? (
               notebookInfo.specs.ramGb < 16 ? (
-                <span className="inline-flex items-center gap-1 rounded bg-destructive/15 px-1.5 py-0.5 text-[0.68rem] font-bold text-destructive border border-destructive/30">
-                  UPGRADE OBRIGATÓRIO · {notebookInfo.specs.ramGb} GB
+                <span className="rounded-md border border-destructive/30 bg-destructive/10 px-1.5 py-0.5 text-[0.68rem] font-bold text-destructive">
+                  Upgrade · {notebookInfo.specs.ramGb} GB
                 </span>
               ) : (
-                <span className="inline-flex items-center gap-1 rounded bg-muted/60 px-1.5 py-0.5 text-[0.68rem] font-medium text-muted-foreground">
-                  {notebookInfo.specs.ramGb} GB RAM
-                </span>
+                <span className="chip-meta">{notebookInfo.specs.ramGb} GB RAM</span>
               )
             ) : null}
             {menorPreco != null ? (
               menorPreco <= 9000 ? (
-                <span className="inline-flex items-center gap-1 rounded bg-emerald-500/10 px-1.5 py-0.5 text-[0.65rem] font-medium text-emerald-700">
-                  ✓ Até R$ 9k
-                </span>
+                <span className="chip-good">Até R$ 9k</span>
               ) : (
-                <span className="inline-flex items-center gap-1 rounded bg-destructive/10 px-1.5 py-0.5 text-[0.65rem] font-medium text-destructive">
-                  Acima R$ 9k
-                </span>
+                <span className="chip-warn">Acima R$ 9k</span>
               )
             ) : null}
             {ehMarcaPremium(notebookInfo.cls.marca) || foraDoOrcamento(menorPreco) ? (
-              <span className="inline-flex items-center gap-1 rounded border border-amber-500/40 bg-amber-500/15 px-1.5 py-0.5 text-[0.65rem] font-bold uppercase tracking-wide text-amber-900 dark:text-amber-200">
-                Premium
-              </span>
+              <span className="chip-warn">Premium</span>
             ) : null}
           </div>
         ) : null}
@@ -153,14 +141,15 @@ export const ProductMarketCard = memo(function ProductMarketCard({
         <div className="mt-4 grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <p className="text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-                Preço atual
+              <p className="text-eyebrow">
+                {cupomTag?.trim() ? 'Preço com cupom' : 'Preço atual'}
               </p>
               <p className="mt-1 font-display text-2xl font-bold tabular-price text-primary sm:text-3xl">
                 {formatBRL(menorPreco)}
               </p>
+              {cupomTag?.trim() ? <CupomBadge cupomTag={cupomTag} className="mt-1.5" /> : null}
               {notebookInfo?.cb ? (
-                <p className="mt-0.5 text-xs font-medium text-foreground">
+                <p className="mt-1 text-xs font-medium text-foreground">
                   <span className="font-bold text-primary">
                     {notebookInfo.cb.potenciaPorMil.toFixed(1)}
                   </span>{' '}
@@ -169,10 +158,8 @@ export const ProductMarketCard = memo(function ProductMarketCard({
               ) : null}
             </div>
             <div>
-              <p className="text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-                Mínimo histórico
-              </p>
-              <p className="mt-1 font-display text-xl font-bold tabular-price text-foreground sm:text-2xl">
+              <p className="text-eyebrow">Mínimo histórico</p>
+              <p className="mt-1 font-display text-xl font-bold tabular-price text-ink sm:text-2xl">
                 {formatBRL(minimoHistorico?.preco)}
               </p>
               {minimoHistorico ? (
@@ -190,19 +177,17 @@ export const ProductMarketCard = memo(function ProductMarketCard({
         </div>
 
         {noMinimoHistorico ? (
-          <p className="mt-3 inline-flex rounded-md bg-emerald-500/10 px-2 py-1 text-xs font-semibold text-emerald-800">
-            No mínimo histórico — boa hora de comprar
-          </p>
+          <p className="chip-good mt-3">No mínimo histórico — boa hora de comprar</p>
         ) : economiaVsHistorico != null && economiaVsHistorico > 0 ? (
           <p className="mt-3 text-xs text-muted-foreground">
             +{formatBRL(economiaVsHistorico)} acima do mínimo da janela
           </p>
         ) : null}
 
-        <div className="mt-4 flex items-center justify-between border-t border-border/70 pt-3 text-sm text-muted-foreground transition-colors group-hover:text-primary">
-          <span className="inline-flex items-center gap-1 font-medium">
+        <div className="mt-4 flex items-center justify-between border-t border-border pt-3 text-sm text-muted-foreground transition-colors group-hover:text-primary">
+          <span className="inline-flex items-center gap-1 font-semibold">
             Ver detalhes
-            <ChevronRight className="h-4 w-4" />
+            <ChevronRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-0.5" />
           </span>
           {isRealUrl(urlMenorPreco) ? (
             <span
@@ -211,7 +196,7 @@ export const ProductMarketCard = memo(function ProductMarketCard({
                 e.stopPropagation();
                 window.open(urlMenorPreco!, '_blank', 'noopener,noreferrer');
               }}
-              className="inline-flex items-center gap-1 rounded-md bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary transition hover:bg-primary hover:text-primary-foreground"
+              className="inline-flex items-center gap-1 rounded-md bg-primary px-2.5 py-1 text-xs font-semibold text-primary-foreground transition-colors hover:bg-ink"
               title="Abrir oferta diretamente na loja"
             >
               Ver na loja <ExternalLink className="h-3 w-3" />
@@ -222,14 +207,14 @@ export const ProductMarketCard = memo(function ProductMarketCard({
         </div>
       </Link>
 
-      <div className="border-t border-border/60 px-5 pb-4 pt-0">
+      <div className="border-t border-border px-5 pb-4">
         <button
           type="button"
           onClick={() => setHistoricoAberto(true)}
-          className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-lg border border-border bg-muted/30 px-3 py-2 text-xs font-semibold text-foreground transition hover:border-primary/40 hover:bg-primary/5 hover:text-primary"
+          className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-lg border border-border bg-muted px-3 py-2 text-xs font-semibold text-foreground transition-colors duration-150 hover:border-primary/40 hover:bg-primary hover:text-primary-foreground"
         >
           <LineChart className="h-3.5 w-3.5" aria-hidden />
-          Ver Histórico
+          Ver histórico
         </button>
       </div>
 

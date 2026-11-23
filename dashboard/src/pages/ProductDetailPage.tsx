@@ -101,10 +101,8 @@ export function ProductDetailPage() {
               </Link>
             </Button>
             <div>
-              <p className="text-[0.7rem] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                Price theater
-              </p>
-              <h2 className="font-display text-2xl font-bold tracking-tight sm:text-3xl">
+              <p className="text-eyebrow">Price theater</p>
+              <h2 className="mt-1 font-display text-2xl font-bold tracking-tight text-ink sm:text-3xl">
                 {data?.label ?? produtoChave}
               </h2>
               <div className="mt-2 flex flex-wrap items-end gap-3">
@@ -112,10 +110,7 @@ export function ProductDetailPage() {
                   <AnimatedNumber value={heroPrice} kind="brl" />
                 </p>
                 {delta != null ? (
-                  <span
-                    className={`rounded-md px-2 py-1 text-sm font-semibold ${delta <= 0 ? 'bg-success/10 text-success' : 'bg-destructive/10 text-destructive'
-                      }`}
-                  >
+                  <span className={delta <= 0 ? 'chip-good' : 'chip-warn'}>
                     {formatPct(delta)} no período
                   </span>
                 ) : null}

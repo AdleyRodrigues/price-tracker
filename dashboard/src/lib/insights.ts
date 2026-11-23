@@ -3,13 +3,13 @@ import { formatBRL, formatPct } from './format';
 export function toneClass(tone: 'positive' | 'warning' | 'neutral' | 'accent'): string {
   switch (tone) {
     case 'positive':
-      return 'border-success/25 bg-success/8 text-success';
+      return 'border-success/30 bg-[var(--color-chip-good-bg)] text-[var(--color-chip-good-fg)]';
     case 'warning':
-      return 'border-warning/25 bg-warning/8 text-warning';
+      return 'border-warning/35 bg-[var(--color-chip-warn-bg)] text-[var(--color-chip-warn-fg)]';
     case 'accent':
-      return 'border-accent/30 bg-accent/10 text-accent-foreground';
+      return 'border-accent/40 bg-accent/15 text-accent-foreground';
     default:
-      return 'border-border bg-muted/60 text-foreground';
+      return 'border-border bg-card text-foreground';
   }
 }
 

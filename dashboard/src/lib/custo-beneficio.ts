@@ -230,6 +230,7 @@ export type ItemDestaque4k = {
   preco: number;
   loja: string | null;
   url: string | null;
+  cupomTag?: string | null;
   potencia: number;
   potenciaPorMil: number;
   precoPorPonto: number;
@@ -277,6 +278,7 @@ export function calcularDestaques4k(
     menorPreco: number | null;
     lojaMenorPreco: string | null;
     urlMenorPreco?: string | null;
+    cupomTag?: string | null;
   }>
 ): Destaques4k | null {
   const itens: ItemDestaque4k[] = [];
@@ -317,6 +319,7 @@ export function calcularDestaques4k(
       preco: p.menorPreco,
       loja: p.lojaMenorPreco,
       url: p.urlMenorPreco ?? null,
+      cupomTag: p.cupomTag?.trim() || null,
       potencia: cb.potencia,
       potenciaPorMil: cb.potenciaPorMil,
       precoPorPonto: cb.precoPorPonto,

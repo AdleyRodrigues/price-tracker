@@ -8,7 +8,7 @@ type Props = {
 export function DataFreshnessBanner({ atualizadoEm }: Props) {
   if (!atualizadoEm) {
     return (
-      <div className="market-panel flex items-center gap-3 border-warning/30 bg-warning/5 px-4 py-3 text-sm text-warning">
+      <div className="panel-warn flex items-center gap-3">
         <Clock3 className="h-4 w-4 shrink-0" />
         <p>Ainda sem dados reais no gráfico. Aguarde a próxima coleta do tracker.</p>
       </div>
@@ -22,9 +22,7 @@ export function DataFreshnessBanner({ atualizadoEm }: Props) {
           <Clock3 className="h-4 w-4" />
         </span>
         <div>
-          <p className="text-[0.7rem] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-            Última atualização com dados reais
-          </p>
+          <p className="text-eyebrow">Última atualização com dados reais</p>
           <p className="font-display text-base font-semibold tracking-tight">
             {formatDateTime(atualizadoEm)}
             <span className="ml-2 text-sm font-medium text-muted-foreground">

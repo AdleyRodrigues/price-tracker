@@ -6,7 +6,7 @@ import { logger } from 'hono/logger';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { api } from './routes';
-import { ensureHistoricoSynced, getDbMode, isDbConfigured } from './db';
+import { ensureCupomSchema, ensureHistoricoSynced, getDbMode, isDbConfigured } from './db';
 import { getLastHistoricoSyncIso } from './sync-historico';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -104,6 +104,13 @@ async function main() {
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     console.warn(`[historico-sync] boot sync skip: ${msg}`);
+  }
+
+  try {
+    await ensureCupomSchema();
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.warn(`[db] cupom schema: ${msg}`);
   }
 
   console.log(

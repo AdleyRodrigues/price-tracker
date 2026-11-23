@@ -14,6 +14,8 @@ import {
   ehMarcaPremium,
   foraDoOrcamento,
 } from '@/lib/serie-notebook';
+import { cn } from '@/lib/utils';
+import { CupomBadge } from './CupomBadge';
 
 type Produto = {
   produtoChave: string;
@@ -21,22 +23,22 @@ type Produto = {
   menorPreco: number | null;
   lojaMenorPreco: string | null;
   urlMenorPreco?: string | null;
+  cupomTag?: string | null;
 };
 
 type Props = {
   produtos: Produto[];
-  /** Marca selecionada na barra da Overview (só para mensagem de vazio). */
   marcaAtiva?: string | null;
 };
 
 type Modo = 'potencia-por-preco' | 'preco-por-potencia';
 type AbaLista = 'aprovados' | 'oportunidades';
 
-const TOM_4K: Record<Nivel4k, string> = {
-  nativo: 'bg-success/15 text-success',
-  dlss: 'bg-success/10 text-success',
-  'dlss-agressivo': 'bg-amber-500/15 text-amber-700 dark:text-amber-400',
-  limitado: 'bg-destructive/10 text-destructive',
+const CHIP_4K: Record<Nivel4k, string> = {
+  nativo: 'chip-good',
+  dlss: 'chip-good',
+  'dlss-agressivo': 'chip-warn',
+  limitado: 'rounded-md border border-destructive/30 bg-destructive/10 px-2 py-0.5 text-[0.68rem] font-semibold text-destructive',
 };
 
 function linkValido(url?: string | null): url is string {
@@ -104,73 +106,84 @@ export function CostBenefitRanking({ produtos, marcaAtiva = null }: Props) {
 
   return (
     <section className="market-panel p-5 sm:p-6">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <p className="text-[0.7rem] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-            Custo-benefício · foco em jogos 4K
-          </p>
-          <h3 className="font-display text-xl font-bold tracking-tight">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div className="max-w-xl">
+          <p className="text-eyebrow">Custo-benefício · jogos 4K</p>
+          <h3 className="mt-1 font-display text-xl font-bold tracking-tight text-ink">
             {modo === 'potencia-por-preco' ? 'Potência 4K por preço' : 'Preço por potência 4K'}
           </h3>
-          <p className="mt-1 max-w-xl text-sm text-muted-foreground">
-            Em 4K a GPU e o TGP decidem o FPS estável (+ DLSS 4 na série 50). Modelos com 8 GB RAM
-            continuam na lista com penalidade e selo de upgrade (~{formatBRL(CUSTO_UPGRADE_RAM_BRL)}).
-            Baseline: RTX 4060 115W + 16 GB ≈ 100 pts.
+          <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
+            GPU e TGP decidem o FPS estável em 4K. Modelos com 8 GB RAM ficam na lista com
+            penalidade e selo de upgrade (~{formatBRL(CUSTO_UPGRADE_RAM_BRL)}). Baseline: RTX 4060
+            115W + 16 GB ≈ 100 pts.
           </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          <div className="inline-flex rounded-xl border bg-muted/30 p-1 text-xs">
+          <div className="inline-flex rounded-xl border border-border bg-muted p-1 text-xs">
             <button
               type="button"
               onClick={() => setAba('aprovados')}
-              className={`rounded-lg px-2.5 py-1 transition font-medium ${aba === 'aprovados'
-                ? 'bg-primary text-primary-foreground shadow-sm'
-                : 'text-muted-foreground hover:text-foreground'
-                }`}
+              className={cn(
+                'rounded-lg px-2.5 py-1.5 font-semibold transition-colors duration-150',
+                aba === 'aprovados'
+                  ? 'bg-primary text-primary-foreground shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground'
+              )}
             >
-              Aprovados 4K (≥{TGP_MIN_APROVADO_4K}W) · {qtdAprovados}
+              Aprovados (≥{TGP_MIN_APROVADO_4K}W) · {qtdAprovados}
             </button>
             <button
               type="button"
               onClick={() => setAba('oportunidades')}
-              className={`rounded-lg px-2.5 py-1 transition font-medium ${aba === 'oportunidades'
-                ? 'bg-primary text-primary-foreground shadow-sm'
-                : 'text-muted-foreground hover:text-foreground'
-                }`}
+              className={cn(
+                'rounded-lg px-2.5 py-1.5 font-semibold transition-colors duration-150',
+                aba === 'oportunidades'
+                  ? 'bg-primary text-primary-foreground shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground'
+              )}
             >
-              {`Oportunidades (<${TGP_MIN_APROVADO_4K}W) · ${qtdOportunidades}`}
+              Oportunidades · {qtdOportunidades}
             </button>
           </div>
 
           <button
             type="button"
             onClick={() => setApenasFullPower(!apenasFullPower)}
-            className={`rounded-lg border px-2.5 py-1 text-xs font-medium transition ${apenasFullPower
-              ? 'border-primary bg-primary text-primary-foreground shadow-sm'
-              : 'border-border bg-background text-muted-foreground hover:text-foreground'
-              }`}
+            className={cn(
+              'rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition-colors duration-150',
+              apenasFullPower
+                ? 'border-primary bg-primary text-primary-foreground shadow-sm'
+                : 'border-border bg-card text-muted-foreground hover:text-foreground'
+            )}
           >
             Full Power (≥115W)
           </button>
 
-          {/* Mode Switch */}
-          <div className="inline-flex rounded-xl border bg-muted/40 p-1 text-xs font-semibold">
+          <div className="inline-flex rounded-xl border border-border bg-muted p-1 text-xs font-semibold">
             <button
               type="button"
               onClick={() => setModo('potencia-por-preco')}
-              className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 transition ${modo === 'potencia-por-preco' ? 'bg-background shadow-sm' : 'text-muted-foreground'
-                }`}
+              className={cn(
+                'inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 transition-colors duration-150',
+                modo === 'potencia-por-preco'
+                  ? 'bg-card text-foreground shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground'
+              )}
             >
-              <Gauge className="h-3.5 w-3.5" /> Potência / R$
+              <Gauge className="h-3.5 w-3.5" aria-hidden /> Potência / R$
             </button>
             <button
               type="button"
               onClick={() => setModo('preco-por-potencia')}
-              className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 transition ${modo === 'preco-por-potencia' ? 'bg-background shadow-sm' : 'text-muted-foreground'
-                }`}
+              className={cn(
+                'inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 transition-colors duration-150',
+                modo === 'preco-por-potencia'
+                  ? 'bg-card text-foreground shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground'
+              )}
             >
-              <Wallet className="h-3.5 w-3.5" /> R$ / potência
+              <Wallet className="h-3.5 w-3.5" aria-hidden /> R$ / potência
             </button>
           </div>
         </div>
@@ -185,11 +198,10 @@ export function CostBenefitRanking({ produtos, marcaAtiva = null }: Props) {
               : 'Nenhum notebook corresponde aos filtros selecionados.'}
         </p>
       ) : (
-        <ul className="mt-5 space-y-2">
+        <ul className="mt-6 space-y-1">
           {rows.map((r, i) => {
             const pct = Math.max(4, Math.round(barra(r) * 100));
             const clicavel = linkValido(r.urlMenorPreco);
-            // Sempre nome comercial (TUF F16…); ignora part number no início do label.
             const partesLabel = r.label.split('·').map((s) => s.trim()).filter(Boolean);
             const restoSpecs = partesLabel.slice(1).join(' · ');
             const tituloExibicao = restoSpecs
@@ -199,7 +211,7 @@ export function CostBenefitRanking({ produtos, marcaAtiva = null }: Props) {
               <>
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <p className="font-display text-sm font-semibold">
+                    <p className="font-display text-sm font-semibold text-ink">
                       <span className="mr-2 text-muted-foreground">{i + 1}.</span>
                       <span className={clicavel ? 'group-hover:text-primary group-hover:underline' : ''}>
                         {tituloExibicao}
@@ -208,51 +220,38 @@ export function CostBenefitRanking({ produtos, marcaAtiva = null }: Props) {
                         <ExternalLink className="ml-1.5 inline h-3.5 w-3.5 text-muted-foreground group-hover:text-primary" />
                       ) : null}
                     </p>
-                    <p className="mt-0.5 text-xs text-muted-foreground">
-                      <span className="font-semibold text-foreground">{formatBRL(r.menorPreco)}</span>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      <span className="font-bold tabular-price text-foreground">
+                        {formatBRL(r.menorPreco)}
+                      </span>
                       {r.lojaMenorPreco ? ` · ${r.lojaMenorPreco}` : ''}
                       {!clicavel ? ' · sem link válido' : ''}
                     </p>
-                    <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-                      <span
-                        className={`inline-block rounded-md px-2 py-0.5 text-[0.68rem] font-semibold ${TOM_4K[r.cb.nivel4k]}`}
-                      >
-                        {DESCRICAO_4K[r.cb.nivel4k]}
-                      </span>
+                    <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                      {r.cupomTag?.trim() ? <CupomBadge cupomTag={r.cupomTag} /> : null}
+                      <span className={CHIP_4K[r.cb.nivel4k]}>{DESCRICAO_4K[r.cb.nivel4k]}</span>
                       {r.cls.categoriaTgp === 'full_power' ? (
-                        <span className="rounded-md bg-emerald-500/10 px-2 py-0.5 text-[0.68rem] font-semibold text-emerald-700 dark:text-emerald-400 border border-emerald-500/20">
-                          ⚡ TGP {r.cls.tgpWatts}W Full Power
-                        </span>
+                        <span className="chip-good">TGP {r.cls.tgpWatts}W Full Power</span>
                       ) : r.cls.categoriaTgp === 'balanceado' ? (
-                        <span className="rounded-md bg-sky-500/10 px-2 py-0.5 text-[0.68rem] font-semibold text-sky-700 dark:text-sky-400 border border-sky-500/20">
-                          ⚡ TGP {r.cls.tgpWatts}W Balanceado
-                        </span>
+                        <span className="chip-meta">TGP {r.cls.tgpWatts}W Balanceado</span>
                       ) : (
-                        <span className="rounded-md bg-amber-500/15 px-2 py-0.5 text-[0.68rem] font-semibold text-amber-800 dark:text-amber-300 border border-amber-500/30">
-                          ⚠️ TGP {r.cls.tgpWatts}W Slim (Reduzido)
-                        </span>
+                        <span className="chip-warn">TGP {r.cls.tgpWatts}W Slim</span>
                       )}
-                      <span className="rounded-md bg-muted px-2 py-0.5 text-[0.68rem] font-medium text-muted-foreground">
-                        {r.cls.suporta4k120Hz ? '📺 HDMI 2.1 FRL (4K 120Hz)' : '📺 HDMI TMDS (4K 60Hz)'}
+                      <span className="chip-meta">
+                        {r.cls.suporta4k120Hz ? 'HDMI 2.1 · 4K 120Hz' : 'HDMI · 4K 60Hz'}
                       </span>
                       {r.cb.upgradeRamObrigatorio ? (
-                        <span className="rounded-md bg-destructive/15 px-2 py-0.5 text-[0.68rem] font-bold text-destructive border border-destructive/30">
-                          UPGRADE OBRIGATÓRIO · +{formatBRL(CUSTO_UPGRADE_RAM_BRL)} RAM
+                        <span className="rounded-md border border-destructive/30 bg-destructive/10 px-2 py-0.5 text-[0.68rem] font-bold text-destructive">
+                          Upgrade RAM · +{formatBRL(CUSTO_UPGRADE_RAM_BRL)}
                         </span>
                       ) : null}
                       {r.menorPreco <= 9000 ? (
-                        <span className="rounded-md bg-emerald-500/10 px-1.5 py-0.5 text-[0.65rem] font-medium text-emerald-700 dark:text-emerald-400">
-                          ✓ No Orçamento
-                        </span>
+                        <span className="chip-good">Até R$ 9k</span>
                       ) : (
-                        <span className="rounded-md bg-destructive/10 px-1.5 py-0.5 text-[0.65rem] font-medium text-destructive">
-                          Acima de R$ 9.000
-                        </span>
+                        <span className="chip-warn">Acima de R$ 9k</span>
                       )}
                       {ehMarcaPremium(r.cls.marca) || foraDoOrcamento(r.menorPreco) ? (
-                        <span className="rounded-md border border-amber-500/40 bg-amber-500/15 px-1.5 py-0.5 text-[0.65rem] font-bold uppercase tracking-wide text-amber-900 dark:text-amber-200">
-                          Premium
-                        </span>
+                        <span className="chip-warn">Premium</span>
                       ) : null}
                     </div>
                   </div>
@@ -262,7 +261,7 @@ export function CostBenefitRanking({ produtos, marcaAtiva = null }: Props) {
                         ? `${r.cb.potenciaPorMil.toFixed(2)} pts/R$ mil`
                         : `${formatBRL(r.cb.precoPorPonto)}/pt`}
                     </p>
-                    <p className="text-[0.7rem] tabular-nums text-muted-foreground">
+                    <p className="mt-0.5 text-[0.7rem] tabular-nums text-muted-foreground">
                       {r.cb.potencia.toFixed(0)} pts ·{' '}
                       {modo === 'potencia-por-preco'
                         ? `${formatBRL(r.cb.precoPorPonto)}/pt`
@@ -270,9 +269,9 @@ export function CostBenefitRanking({ produtos, marcaAtiva = null }: Props) {
                     </p>
                   </div>
                 </div>
-                <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-muted">
+                <div className="mt-2.5 h-1.5 overflow-hidden rounded-full bg-muted">
                   <div
-                    className="h-full rounded-full bg-primary/80 transition-[width] duration-300 motion-reduce:transition-none"
+                    className="h-full rounded-full bg-primary transition-[width] duration-300 motion-reduce:transition-none"
                     style={{ width: `${pct}%` }}
                   />
                 </div>
@@ -286,13 +285,13 @@ export function CostBenefitRanking({ produtos, marcaAtiva = null }: Props) {
                     href={r.urlMenorPreco!}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="group block rounded-xl border border-transparent p-3 transition hover:border-border hover:bg-muted/40"
+                    className="group block rounded-xl border border-transparent p-3.5 transition-colors duration-150 hover:border-border hover:bg-muted/50"
                     title={`Abrir oferta na ${r.lojaMenorPreco ?? 'loja'}`}
                   >
                     {conteudo}
                   </a>
                 ) : (
-                  <div className="rounded-xl p-3 opacity-70">{conteudo}</div>
+                  <div className="rounded-xl p-3.5 opacity-70">{conteudo}</div>
                 )}
               </li>
             );

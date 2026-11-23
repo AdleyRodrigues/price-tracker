@@ -14,6 +14,8 @@ import { formatBRL, formatDateTime, formatPct } from '@/lib/format';
 import type { ModuloDash } from '@/lib/modulo';
 import type { Destaques4k } from '@/lib/custo-beneficio';
 import { AnimatedNumber } from './AnimatedNumber';
+import { CupomBadge } from './CupomBadge';
+import { cn } from '@/lib/utils';
 
 type Props = {
   kpis: OverviewInsightsResponse['kpis'];
@@ -24,12 +26,12 @@ type Props = {
 type CardItem = {
   label: string;
   badgeTop?: string | null;
-  badgeTone?: string;
   value: number | string | null;
   kind: 'brl' | 'pct' | 'int' | 'raw';
   hint: string;
   sub?: string | null;
-  subTone?: string | null;
+  priceLine?: string | null;
+  cupomTag?: string | null;
   url?: string | null;
   icon: typeof Store;
   tone: string;
@@ -45,8 +47,6 @@ export function KpiTheater({ kpis, modulo, destaques4k }: Props) {
         badgeTop: destaques4k.campeao
           ? `${destaques4k.campeao.potenciaPorMil.toFixed(1)} pts / R$ mil`
           : null,
-        badgeTone:
-          'bg-emerald-500/15 text-emerald-800 dark:text-emerald-300 border border-emerald-500/30',
         value: destaques4k.campeao ? formatBRL(destaques4k.campeao.preco) : '—',
         kind: 'raw',
         hint: destaques4k.campeao
@@ -55,6 +55,7 @@ export function KpiTheater({ kpis, modulo, destaques4k }: Props) {
         sub: destaques4k.campeao
           ? `${destaques4k.campeao.loja ? 'Loja: ' + destaques4k.campeao.loja + ' · ' : ''}Potência 4K: ${Math.round(destaques4k.campeao.potencia)} pts`
           : null,
+        cupomTag: destaques4k.campeao?.cupomTag,
         url: destaques4k.campeao?.url,
         icon: Trophy,
         tone: 'text-primary',
@@ -64,8 +65,6 @@ export function KpiTheater({ kpis, modulo, destaques4k }: Props) {
         badgeTop: destaques4k.menorEntrada
           ? `${Math.round(destaques4k.menorEntrada.potencia)} pts (DLSS)`
           : null,
-        badgeTone:
-          'bg-sky-500/15 text-sky-800 dark:text-sky-300 border border-sky-500/30',
         value: destaques4k.menorEntrada ? formatBRL(destaques4k.menorEntrada.preco) : '—',
         kind: 'raw',
         hint: destaques4k.menorEntrada
@@ -74,15 +73,14 @@ export function KpiTheater({ kpis, modulo, destaques4k }: Props) {
         sub: destaques4k.menorEntrada
           ? `${destaques4k.menorEntrada.loja ? 'Loja: ' + destaques4k.menorEntrada.loja + ' · ' : ''}${destaques4k.menorEntrada.potenciaPorMil.toFixed(1)} pts / R$ mil`
           : null,
+        cupomTag: destaques4k.menorEntrada?.cupomTag,
         url: destaques4k.menorEntrada?.url,
         icon: Zap,
-        tone: 'text-foreground',
+        tone: 'text-ink',
       },
       {
         label: 'Máxima Potência 4K',
-        badgeTop: 'Teto Gráfico',
-        badgeTone:
-          'bg-purple-500/15 text-purple-800 dark:text-purple-300 border border-purple-500/30',
+        badgeTop: 'Teto gráfico',
         value: destaques4k.maxPotencia
           ? `${Math.round(destaques4k.maxPotencia.potencia)} pts`
           : '—',
@@ -90,12 +88,13 @@ export function KpiTheater({ kpis, modulo, destaques4k }: Props) {
         hint: destaques4k.maxPotencia
           ? `${destaques4k.maxPotencia.modelo} · ${destaques4k.maxPotencia.specsCurta}`
           : 'Aguardando coletas',
-        sub: destaques4k.maxPotencia
-          ? `${formatBRL(destaques4k.maxPotencia.preco)}${destaques4k.maxPotencia.loja ? ' · Loja: ' + destaques4k.maxPotencia.loja : ''}`
+        priceLine: destaques4k.maxPotencia
+          ? `${formatBRL(destaques4k.maxPotencia.preco)}${destaques4k.maxPotencia.loja ? ' · ' + destaques4k.maxPotencia.loja : ''}`
           : null,
+        cupomTag: destaques4k.maxPotencia?.cupomTag,
         url: destaques4k.maxPotencia?.url,
         icon: Gauge,
-        tone: 'text-purple-600 dark:text-purple-400',
+        tone: 'text-primary',
       },
     ]
     : [];
@@ -147,31 +146,38 @@ export function KpiTheater({ kpis, modulo, destaques4k }: Props) {
 
   return (
     <div
-      className={`grid gap-4 ${isNotebook4k ? 'sm:grid-cols-2 xl:grid-cols-3' : 'sm:grid-cols-2 xl:grid-cols-4'}`}
+      className={cn(
+        'grid gap-4',
+        isNotebook4k ? 'sm:grid-cols-2 xl:grid-cols-3' : 'sm:grid-cols-2 xl:grid-cols-4'
+      )}
     >
-      {cards.map((card) => {
+      {cards.map((card, index) => {
         const hasUrl = 'url' in card && isRealUrl(card.url);
+        const cupomTag = card.cupomTag?.trim() || null;
         const cardContent = (
           <div
-            className={`flex h-full flex-col justify-between ${isNotebook4k ? 'min-h-[200px]' : 'min-h-[175px]'}`}
+            className={cn(
+              'flex h-full flex-col justify-between',
+              isNotebook4k ? 'min-h-[210px]' : 'min-h-[175px]'
+            )}
           >
             <div>
-              {/* Header: Label limpo à esquerda + Ícone compacto à direita */}
               <div className="flex items-center justify-between gap-2">
-                <p
-                  className="text-[0.68rem] font-semibold uppercase tracking-[0.12em] text-muted-foreground truncate"
-                  title={card.label}
-                >
+                <p className="text-eyebrow truncate" title={card.label}>
                   {card.label}
                 </p>
-                <span className="rounded-lg bg-muted p-1.5 text-muted-foreground shrink-0">
-                  <card.icon className="h-3.5 w-3.5" />
+                <span className="shrink-0 rounded-lg bg-muted p-1.5 text-muted-foreground">
+                  <card.icon className="h-3.5 w-3.5" aria-hidden />
                 </span>
               </div>
 
-              {/* Destaque Principal + Badge de Performance lado a lado */}
-              <div className="mt-2.5 flex flex-wrap items-baseline gap-2">
-                <p className={`font-display text-2xl sm:text-3xl font-bold tracking-tight ${card.tone}`}>
+              <div className="mt-3 flex flex-wrap items-baseline gap-2">
+                <p
+                  className={cn(
+                    'font-display text-2xl font-bold tracking-tight sm:text-3xl',
+                    card.tone
+                  )}
+                >
                   {card.kind === 'raw' ? (
                     <span className="tabular-price">{card.value}</span>
                   ) : card.kind === 'pct' && card.value != null ? (
@@ -180,47 +186,48 @@ export function KpiTheater({ kpis, modulo, destaques4k }: Props) {
                     <AnimatedNumber value={card.value as number | null} kind={card.kind} />
                   )}
                 </p>
-                {card.badgeTop ? (
-                  <span
-                    className={`inline-flex items-center rounded-full px-2 py-0.5 text-[0.65rem] font-semibold whitespace-nowrap shrink-0 ${card.badgeTone ?? 'bg-muted text-foreground'}`}
-                  >
-                    {card.badgeTop}
-                  </span>
-                ) : null}
+                {card.badgeTop ? <span className="chip-meta">{card.badgeTop}</span> : null}
               </div>
 
-              {/* Nome do modelo / hardware */}
-              <p className="mt-1.5 text-sm font-medium text-foreground line-clamp-1" title={card.hint}>
+              {cupomTag ? <CupomBadge cupomTag={cupomTag} className="mt-2" /> : null}
+
+              <p className="mt-2 text-sm font-semibold text-foreground line-clamp-1" title={card.hint}>
                 {card.hint}
               </p>
 
-              {/* Specs adicionais ou Alerta visual estilizado */}
-              {'sub' in card && card.sub ? (
-                card.subTone ? (
-                  <div
-                    className={`mt-2 inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-[0.72rem] font-medium leading-tight ${card.subTone}`}
-                  >
-                    <span>{card.sub}</span>
-                  </div>
-                ) : (
-                  <p className="mt-1 text-xs text-muted-foreground line-clamp-1" title={card.sub}>
-                    {card.sub}
-                  </p>
-                )
+              {card.priceLine ? (
+                <p className="mt-1.5 font-display text-base font-bold tabular-price text-ink">
+                  {card.priceLine}
+                </p>
+              ) : null}
+
+              {card.sub ? (
+                <p className="mt-1 text-xs text-muted-foreground line-clamp-1" title={card.sub}>
+                  {card.sub}
+                </p>
               ) : null}
             </div>
 
-            {/* Rodapé: Ação única clara e alinhada */}
             {hasUrl ? (
-              <div className="mt-3 pt-2.5 border-t border-border/40 flex items-center justify-between text-xs font-semibold text-primary">
-                <span className="text-[0.7rem] text-muted-foreground font-normal">Oferta verificada</span>
-                <span className="inline-flex items-center gap-1 group-hover:underline">
-                  Ir para a loja <ExternalLink className="h-3.5 w-3.5" />
+              <div className="mt-4 flex items-center justify-between gap-2 border-t border-border pt-3 text-xs">
+                <span className="font-medium text-muted-foreground">
+                  {cupomTag ? 'Valor já com cupom' : 'Oferta verificada'}
+                </span>
+                <span className="inline-flex items-center gap-1 font-semibold text-primary transition-colors group-hover:text-ink">
+                  Ir para a loja
+                  <ExternalLink className="h-3.5 w-3.5 transition-transform duration-200 group-hover:translate-x-0.5" />
                 </span>
               </div>
             ) : null}
           </div>
         );
+
+        const panelClass = cn(
+          'animate-podium relative overflow-hidden p-5 transition-[border-color,box-shadow] duration-200 sm:p-6',
+          isNotebook4k ? 'market-panel-lift' : 'market-panel',
+          hasUrl && 'group cursor-pointer hover:border-primary/50'
+        );
+        const style = { animationDelay: `${index * 60}ms` } as const;
 
         if (hasUrl) {
           return (
@@ -229,7 +236,8 @@ export function KpiTheater({ kpis, modulo, destaques4k }: Props) {
               href={card.url!}
               target="_blank"
               rel="noopener noreferrer"
-              className={`market-panel group relative block cursor-pointer overflow-hidden hover:border-primary/60 ${isNotebook4k ? 'p-6 sm:p-7' : 'p-5'}`}
+              className={panelClass}
+              style={style}
               title={`Abrir oferta da ${card.label}`}
             >
               {cardContent}
@@ -238,10 +246,7 @@ export function KpiTheater({ kpis, modulo, destaques4k }: Props) {
         }
 
         return (
-          <div
-            key={card.label}
-            className={`market-panel relative overflow-hidden ${isNotebook4k ? 'p-6 sm:p-7' : 'p-5'}`}
-          >
+          <div key={card.label} className={panelClass} style={style}>
             {cardContent}
           </div>
         );

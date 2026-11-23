@@ -13,7 +13,7 @@ import { LazyChartMount } from '@/components/charts/LazyChartMount';
 import { downsample } from '@/lib/downsample';
 import { formatBRL, formatDateTime, formatRelativeTime } from '@/lib/format';
 
-const PALETTE = ['#0f6b4c', '#e8913a', '#0369a1', '#be123c', '#0f766e', '#a16207', '#4f46e5', '#db2777'];
+const PALETTE = ['#0f6b4c', '#e8913a', '#0369a1', '#be123c', '#0f766e', '#a16207', '#155e75', '#9a3412'];
 const MAX_PONTOS_CHART = 48;
 
 function colorFor(chave: string, index: number): string {
@@ -175,10 +175,8 @@ export const MarketPulseChart = memo(function MarketPulseChart({
     <section className="market-panel relative overflow-visible p-5 sm:p-6 hover:z-30">
       <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p className="text-[0.7rem] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-            {eyebrow}
-          </p>
-          <h3 className="font-display text-xl font-bold tracking-tight">{titulo}</h3>
+          <p className="text-eyebrow">{eyebrow}</p>
+          <h3 className="mt-1 font-display text-xl font-bold tracking-tight text-ink">{titulo}</h3>
           {ultimoPonto ? (
             <p className="mt-1.5 text-xs text-muted-foreground">
               Dados reais até{' '}

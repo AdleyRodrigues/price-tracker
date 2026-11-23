@@ -9,28 +9,25 @@ type Props = {
 export function ScraperStatusBadge({ atualizadoEm }: Props) {
   if (!atualizadoEm) {
     return (
-      <div className="inline-flex items-center gap-2 rounded-full border border-warning/40 bg-warning/5 px-3 py-1.5 text-xs font-medium text-warning">
-        <span className="h-1.5 w-1.5 rounded-full bg-warning" />
+      <div className="chip-warn inline-flex items-center gap-2 rounded-full px-3 py-1.5">
+        <span className="h-1.5 w-1.5 rounded-full bg-[var(--color-chip-warn-fg)]" />
         Scraper: aguardando primeira varredura
       </div>
     );
   }
 
   const relative = formatRelativeTime(atualizadoEm);
-  // "há 12 minutos" / "há 1 h" — já vem pronto do formatRelativeTime
-  const online = true;
 
   return (
-    <div className="inline-flex items-center gap-2 rounded-full border border-primary/25 bg-primary/5 px-3 py-1.5 text-xs font-medium text-foreground">
-      <Radio className="h-3.5 w-3.5 text-primary" aria-hidden />
+    <div className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-[var(--color-chip-good-bg)] px-3 py-1.5 text-xs font-semibold text-[var(--color-chip-good-fg)]">
+      <Radio className="h-3.5 w-3.5" aria-hidden />
       <span className="relative flex h-1.5 w-1.5">
         <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-40" />
         <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-primary" />
       </span>
       <span>
-        Status do Scraper:{' '}
-        <span className="font-semibold text-primary">{online ? 'Online' : 'Offline'}</span>
-        <span className="text-muted-foreground"> · Última varredura: {relative}</span>
+        Scraper <span className="font-bold">online</span>
+        <span className="font-medium opacity-80"> · última varredura {relative}</span>
       </span>
     </div>
   );

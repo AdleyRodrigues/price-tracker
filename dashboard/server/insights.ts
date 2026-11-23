@@ -71,6 +71,7 @@ export type OverviewInsightsResponse = {
     menorPreco: number | null;
     lojaMenorPreco: string | null;
     urlMenorPreco?: string | null;
+    cupomTag?: string | null;
     coletadoEm: string | null;
     variacao7d: number | null;
     totalSnapshots: number;
@@ -204,6 +205,7 @@ export function buildOverviewInsights(input: {
     menorPreco: number | null;
     lojaMenorPreco: string | null;
     urlMenorPreco?: string | null;
+    cupomTag?: string | null;
     coletadoEm: string | null;
     variacao7d: number | null;
     totalSnapshots: number;

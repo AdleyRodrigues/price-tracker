@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+/* Light-first: dark: só com .dark no html — não segue prefers-color-scheme do OS */
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
   --font-sans: "DM Sans", ui-sans-serif, system-ui, sans-serif;
   --font-display: "Syne", "DM Sans", ui-sans-serif, system-ui, sans-serif;
@@ -25,6 +28,18 @@
   --color-chart-1: #0f6b4c;
   --color-chart-2: #e8913a;
   --color-chart-3: #0369a1;
+  --color-chart-4: #0f766e;
+  --color-chart-5: #a16207;
+
+  --color-chip-coupon-bg: #1a1208;
+  --color-chip-coupon-fg: #fff7ed;
+  --color-chip-meta-bg: #e8ebf0;
+  --color-chip-meta-fg: #0b1220;
+  --color-chip-good-bg: #d1fae5;
+  --color-chip-good-fg: #065f46;
+  --color-chip-warn-bg: #ffedd5;
+  --color-chip-warn-fg: #9a3412;
+
   --radius-sm: 0.375rem;
   --radius-md: 0.75rem;
   --radius-lg: 1rem;
@@ -39,6 +54,7 @@
   html {
     @apply antialiased;
     scroll-behavior: auto;
+    color-scheme: light;
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -54,12 +70,15 @@
 
   body {
     @apply min-h-dvh bg-background text-foreground font-sans;
-    /* Fundo sólido — gradientes no body pintam de novo a cada frame de scroll */
     background-color: #f7f8fa;
   }
 
   #root {
     @apply relative min-h-dvh;
+  }
+
+  :focus-visible {
+    @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
   }
 }
 
@@ -72,12 +91,108 @@
   font-variant-numeric: tabular-nums;
 }
 
+@utility text-eyebrow {
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--color-muted-foreground);
+}
+
 @utility market-panel {
   border: 1px solid var(--color-border);
   background: #ffffff;
   border-radius: var(--radius-lg);
-  /* Sombra leve e barata; sem content-visibility (causava jank no scroll) */
   box-shadow: 0 1px 2px rgb(11 18 32 / 0.04);
+}
+
+@utility market-panel-lift {
+  border: 1px solid color-mix(in srgb, var(--color-border) 70%, var(--color-primary) 30%);
+  background: #ffffff;
+  border-radius: var(--radius-lg);
+  box-shadow:
+    0 1px 2px rgb(11 18 32 / 0.04),
+    0 8px 24px rgb(11 18 32 / 0.06);
+}
+
+@utility chip-coupon {
+  display: inline-flex;
+  max-width: 100%;
+  align-items: center;
+  border-radius: var(--radius-sm);
+  background: var(--color-chip-coupon-bg);
+  color: var(--color-chip-coupon-fg);
+  padding: 0.25rem 0.5rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  line-height: 1.25;
+}
+
+@utility chip-meta {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 9999px;
+  background: var(--color-chip-meta-bg);
+  color: var(--color-chip-meta-fg);
+  border: 1px solid var(--color-border);
+  padding: 0.15rem 0.5rem;
+  font-size: 0.65rem;
+  font-weight: 600;
+  line-height: 1.25;
+  white-space: nowrap;
+}
+
+@utility chip-good {
+  display: inline-flex;
+  align-items: center;
+  border-radius: var(--radius-sm);
+  background: var(--color-chip-good-bg);
+  color: var(--color-chip-good-fg);
+  border: 1px solid color-mix(in srgb, var(--color-success) 25%, transparent);
+  padding: 0.15rem 0.5rem;
+  font-size: 0.68rem;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+@utility chip-warn {
+  display: inline-flex;
+  align-items: center;
+  border-radius: var(--radius-sm);
+  background: var(--color-chip-warn-bg);
+  color: var(--color-chip-warn-fg);
+  border: 1px solid color-mix(in srgb, var(--color-warning) 30%, transparent);
+  padding: 0.15rem 0.5rem;
+  font-size: 0.68rem;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+@utility panel-warn {
+  border: 1px solid color-mix(in srgb, var(--color-warning) 35%, transparent);
+  background: color-mix(in srgb, var(--color-chip-warn-bg) 80%, white);
+  color: var(--color-chip-warn-fg);
+  border-radius: var(--radius-lg);
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+}
+
+@keyframes podium-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@utility animate-podium {
+  animation: podium-in 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 /* Tooltips Recharts: acima dos cards vizinhos, sem clip */
@@ -91,8 +206,7 @@
   pointer-events: none !important;
 }
 
-/* Enquanto o tooltip está visível, sobe o card inteiro no stacking
-   (filhos com z-index não ultrapassam irmãos sem isso). */
-.market-panel:has(.recharts-tooltip-wrapper[style*="visibility: visible"]) {
+.market-panel:has(.recharts-tooltip-wrapper[style*="visibility: visible"]),
+.market-panel-lift:has(.recharts-tooltip-wrapper[style*="visibility: visible"]) {
   z-index: 30;
 }

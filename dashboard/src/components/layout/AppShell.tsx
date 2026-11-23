@@ -18,47 +18,51 @@ export function AppShell() {
   }
 
   return (
-    <div className="mx-auto flex min-h-dvh w-full max-w-7xl flex-col px-4 pb-12 pt-5 sm:px-6 lg:px-8">
-      <header className="mb-8 flex flex-col gap-5 border-b border-border/70 pb-5 sm:flex-row sm:items-end sm:justify-between">
-        <Link to={modulo === 'celular' ? '/' : `/?modulo=${modulo}`} className="group flex items-start gap-3">
-          <span className="mt-1 flex h-11 w-11 items-center justify-center rounded-xl bg-ink text-primary-foreground shadow-sm transition-transform duration-300 group-hover:scale-[1.04]">
-            <Activity className="h-5 w-5 text-accent" />
+    <div className="mx-auto flex min-h-dvh w-full max-w-7xl flex-col px-4 pb-16 pt-6 sm:px-6 lg:px-8">
+      <header className="mb-10 flex flex-col gap-6 border-b border-border pb-6 sm:flex-row sm:items-end sm:justify-between">
+        <Link
+          to={modulo === 'celular' ? '/' : `/?modulo=${modulo}`}
+          className="group flex items-start gap-3.5"
+        >
+          <span className="mt-0.5 flex h-12 w-12 items-center justify-center rounded-xl bg-ink text-primary-foreground shadow-sm transition-transform duration-300 group-hover:scale-[1.03]">
+            <Activity className="h-5 w-5 text-accent" aria-hidden />
           </span>
           <div>
-            <p className="font-display text-[0.7rem] font-semibold uppercase tracking-[0.22em] text-muted-foreground">
-              Price History
-            </p>
-            <h1 className="font-display text-2xl font-bold tracking-tight text-ink sm:text-3xl">
+            <p className="font-display text-eyebrow">Price History</p>
+            <h1 className="mt-1 font-display text-3xl font-bold tracking-tight text-ink sm:text-4xl">
               {labelModulo(modulo)}
             </h1>
-            <p className="mt-0.5 max-w-md text-sm text-muted-foreground">
-              Market pulse · histórico por produto, loja e data
+            <p className="mt-1 max-w-md text-sm text-muted-foreground">
+              {subtituloModulo(modulo)}
             </p>
           </div>
         </Link>
 
         <div className="flex flex-col gap-2 sm:items-end">
-          <p className="text-[0.65rem] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-            Módulo
-          </p>
-          <div className="inline-flex rounded-xl border border-border bg-card p-1 shadow-sm">
+          <p className="text-eyebrow">Módulo</p>
+          <div
+            className="inline-flex rounded-xl border border-border bg-card p-1 shadow-sm"
+            role="tablist"
+            aria-label="Alternar módulo"
+          >
             {(['celular', 'notebooks'] as const).map((m) => (
               <button
                 key={m}
                 type="button"
+                role="tab"
+                aria-selected={modulo === m}
                 onClick={() => setModulo(m)}
                 className={cn(
-                  'rounded-lg px-3 py-1.5 text-sm font-medium transition-colors',
+                  'rounded-lg px-3.5 py-1.5 text-sm font-semibold transition-colors duration-150',
                   modulo === m
-                    ? 'bg-primary text-primary-foreground'
-                    : 'text-muted-foreground hover:text-foreground'
+                    ? 'bg-primary text-primary-foreground shadow-sm'
+                    : 'text-muted-foreground hover:bg-muted hover:text-foreground'
                 )}
               >
                 {labelModulo(m)}
               </button>
             ))}
           </div>
-          <p className="font-display text-xs font-semibold text-primary">{subtituloModulo(modulo)}</p>
         </div>
       </header>
       <main className="flex-1">

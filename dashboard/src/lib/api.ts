@@ -5,6 +5,9 @@ export type ProdutoResumo = {
   menorPreco: number | null;
   lojaMenorPreco: string | null;
   urlMenorPreco: string | null;
+  /** Quando o menor preço já inclui desconto de cupom. */
+  cupomTag?: string | null;
+  cupomDesconto?: number | null;
   coletadoEm: string | null;
   variacao24h: number | null;
   variacao7d: number | null;
@@ -104,6 +107,8 @@ export type OverviewInsightsResponse = {
     menorPreco: number | null;
     lojaMenorPreco: string | null;
     urlMenorPreco?: string | null;
+    cupomTag?: string | null;
+    cupomDesconto?: number | null;
     coletadoEm: string | null;
     variacao7d: number | null;
     totalSnapshots: number;

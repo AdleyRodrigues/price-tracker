@@ -102,22 +102,20 @@ export function ProductDetailModal({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="!inset-auto !left-1/2 !top-1/2 !right-auto !bottom-auto !h-auto !max-h-[min(92vh,52rem)] !w-[calc(100%-1.5rem)] !max-w-3xl !-translate-x-1/2 !-translate-y-1/2 overflow-y-auto !rounded-2xl !border !border-border !border-l bg-card !p-5 shadow-2xl sm:!w-[calc(100%-2rem)] sm:!p-6">
         <SheetHeader className="space-y-1.5 pr-8 text-left">
-          <p className="text-[0.65rem] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-            Linha do tempo · preço
-          </p>
-          <SheetTitle className="font-display text-xl leading-snug tracking-tight">
+          <p className="text-eyebrow">Linha do tempo · preço</p>
+          <SheetTitle className="font-display text-xl leading-snug tracking-tight text-ink">
             {titulo}
           </SheetTitle>
         </SheetHeader>
 
         <div className="mt-4 flex flex-wrap items-center justify-between gap-2">
-          <div className="inline-flex rounded-lg border bg-muted/25 p-0.5 text-xs">
+          <div className="inline-flex rounded-lg border border-border bg-muted p-0.5 text-xs">
             {([30, 90] as const).map((d) => (
               <button
                 key={d}
                 type="button"
                 onClick={() => setJanela(d)}
-                className={`rounded-md px-3 py-1.5 font-semibold transition ${janela === d
+                className={`rounded-md px-3 py-1.5 font-semibold transition-colors duration-150 ${janela === d
                   ? 'bg-primary text-primary-foreground shadow-sm'
                   : 'text-muted-foreground hover:text-foreground'
                   }`}
@@ -127,7 +125,7 @@ export function ProductDetailModal({
             ))}
           </div>
           {noMinimo ? (
-            <span className="inline-flex items-center gap-1 rounded-md border border-emerald-500/30 bg-emerald-500/10 px-2 py-1 text-[0.7rem] font-bold text-emerald-800 dark:text-emerald-300">
+            <span className="chip-good inline-flex items-center gap-1">
               <Sparkles className="h-3 w-3" aria-hidden />
               No mínimo histórico
             </span>
@@ -139,22 +137,18 @@ export function ProductDetailModal({
         </div>
 
         <div className="mt-4 grid gap-3 sm:grid-cols-2">
-          <div className="rounded-xl border border-sky-500/25 bg-gradient-to-br from-sky-500/10 to-transparent px-4 py-3">
-            <p className="text-[0.65rem] font-semibold uppercase tracking-[0.16em] text-sky-800 dark:text-sky-300">
-              Preço atual
-            </p>
-            <p className="mt-1 font-display text-2xl font-bold tabular-nums text-sky-950 dark:text-sky-100">
+          <div className="rounded-xl border border-border bg-muted/40 px-4 py-3">
+            <p className="text-eyebrow">Preço atual</p>
+            <p className="mt-1 font-display text-2xl font-bold tabular-price text-primary">
               {formatBRL(precoAtual)}
             </p>
             <p className="mt-0.5 text-[0.7rem] text-muted-foreground">
               Menor à vista na última coleta
             </p>
           </div>
-          <div className="rounded-xl border border-emerald-500/25 bg-gradient-to-br from-emerald-500/10 to-transparent px-4 py-3">
-            <p className="text-[0.65rem] font-semibold uppercase tracking-[0.16em] text-emerald-800 dark:text-emerald-300">
-              Mínimo histórico
-            </p>
-            <p className="mt-1 font-display text-2xl font-bold tabular-nums text-emerald-950 dark:text-emerald-100">
+          <div className="rounded-xl border border-border bg-card px-4 py-3">
+            <p className="text-eyebrow">Mínimo histórico</p>
+            <p className="mt-1 font-display text-2xl font-bold tabular-price text-ink">
               {formatBRL(minimoHistorico)}
             </p>
             <p className="mt-0.5 text-[0.7rem] text-muted-foreground">

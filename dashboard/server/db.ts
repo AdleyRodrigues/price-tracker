@@ -11,6 +11,7 @@ loadEnv({ path: path.resolve(__dirname, '../../.env') });
 loadEnv({ path: path.resolve(__dirname, '../.env') });
 
 let client: Client | null = null;
+let cupomSchemaReady = false;
 
 export function resetDbClient(): void {
   if (client) {
@@ -21,6 +22,7 @@ export function resetDbClient(): void {
     }
     client = null;
   }
+  cupomSchemaReady = false;
 }
 
 export function getDb(): Client {
@@ -45,6 +47,26 @@ export function getDb(): Client {
 
   client = createClient({ url, authToken });
   return client;
+}
+
+/** Colunas cupom_tag / cupom_desconto (idempotente). */
+export async function ensureCupomSchema(): Promise<void> {
+  if (cupomSchemaReady || !isDbConfigured()) return;
+  const db = getDb();
+  for (const sql of [
+    'ALTER TABLE price_snapshots ADD COLUMN cupom_tag TEXT',
+    'ALTER TABLE price_snapshots ADD COLUMN cupom_desconto REAL',
+  ]) {
+    try {
+      await db.execute(sql);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      if (!/duplicate column|already exists/i.test(msg)) {
+        console.warn(`[db] migrate cupom: ${msg}`);
+      }
+    }
+  }
+  cupomSchemaReady = true;
 }
 
 export function isDbConfigured(): boolean {

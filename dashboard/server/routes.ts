@@ -57,6 +57,9 @@ export type ProdutoResumo = {
   menorPreco: number | null;
   lojaMenorPreco: string | null;
   urlMenorPreco: string | null;
+  /** Presente quando o menor preço já inclui desconto de cupom. */
+  cupomTag: string | null;
+  cupomDesconto: number | null;
   coletadoEm: string | null;
   variacao24h: number | null;
   variacao7d: number | null;
@@ -160,11 +163,13 @@ api.get('/produtos', async (c) => {
     let menorPreco: number | null = null;
     let lojaMenorPreco: string | null = null;
     let urlMenorPreco: string | null = null;
+    let cupomTag: string | null = null;
+    let cupomDesconto: number | null = null;
     let coletadoEm: string | null = maxEm;
 
     if (maxEm) {
       const melhorNaUltima = await db.execute({
-        sql: `SELECT preco_avista, loja, url, coletado_em
+        sql: `SELECT preco_avista, loja, url, coletado_em, cupom_tag, cupom_desconto
               FROM price_snapshots
               WHERE modulo = ? AND produto_chave = ? AND coletado_em = ? AND url NOT LIKE '%example.com%'
               ORDER BY preco_avista ASC
@@ -177,6 +182,12 @@ api.get('/produtos', async (c) => {
         lojaMenorPreco = String(best.loja);
         urlMenorPreco = String(best.url);
         coletadoEm = String(best.coletado_em);
+        const tag = best.cupom_tag != null ? String(best.cupom_tag).trim() : '';
+        cupomTag = tag || null;
+        cupomDesconto =
+          best.cupom_desconto != null && Number.isFinite(Number(best.cupom_desconto))
+            ? Number(best.cupom_desconto)
+            : null;
       }
     }
 
@@ -201,6 +212,8 @@ api.get('/produtos', async (c) => {
       menorPreco,
       lojaMenorPreco,
       urlMenorPreco,
+      cupomTag,
+      cupomDesconto,
       coletadoEm,
       variacao24h,
       variacao7d,
@@ -371,6 +384,7 @@ api.get('/insights', async (c) => {
     menorPreco: number | null;
     lojaMenorPreco: string | null;
     urlMenorPreco?: string | null;
+    cupomTag?: string | null;
     coletadoEm: string | null;
     variacao7d: number | null;
     totalSnapshots: number;
@@ -391,11 +405,12 @@ api.get('/insights', async (c) => {
     let menorPreco: number | null = null;
     let lojaMenorPreco: string | null = null;
     let urlMenorPreco: string | null = null;
+    let cupomTag: string | null = null;
     let coletadoEm: string | null = maxEm;
 
     if (maxEm) {
       const best = await db.execute({
-        sql: `SELECT preco_avista, loja, url, coletado_em FROM price_snapshots
+        sql: `SELECT preco_avista, loja, url, coletado_em, cupom_tag FROM price_snapshots
               WHERE modulo = ? AND produto_chave = ? AND coletado_em = ? AND url NOT LIKE '%example.com%'
               ORDER BY preco_avista ASC LIMIT 1`,
         args: [modulo, produtoChave, maxEm],
@@ -405,6 +420,8 @@ api.get('/insights', async (c) => {
         lojaMenorPreco = String(best.rows[0].loja);
         urlMenorPreco = best.rows[0].url ? String(best.rows[0].url) : null;
         coletadoEm = String(best.rows[0].coletado_em);
+        const tag = best.rows[0].cupom_tag != null ? String(best.rows[0].cupom_tag).trim() : '';
+        cupomTag = tag || null;
       }
     }
 
@@ -435,6 +452,7 @@ api.get('/insights', async (c) => {
       menorPreco,
       lojaMenorPreco,
       urlMenorPreco,
+      cupomTag,
       coletadoEm,
       variacao7d,
       totalSnapshots: total,
