@@ -4,9 +4,10 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "dev": "concurrently -k -n api,web -c cyan,magenta \"tsx --watch server/index.ts\" \"vite --host --port 5173 --strictPort --open\"",
-    "dev:api": "tsx --watch server/index.ts",
-    "dev:web": "vite --host --port 5173 --strictPort --open",
+    "free-ports": "node scripts/free-ports.mjs 5173 8787",
+    "dev": "pnpm run free-ports && concurrently -k -n api,web -c cyan,magenta \"tsx --watch server/index.ts\" \"vite --host --port 5173 --strictPort --open\"",
+    "dev:api": "pnpm run free-ports && tsx --watch server/index.ts",
+    "dev:web": "pnpm run free-ports && vite --host --port 5173 --strictPort --open",
     "build": "vite build",
     "start": "cross-env NODE_ENV=production tsx server/index.ts",
     "preview": "vite preview"
