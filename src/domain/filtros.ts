@@ -385,7 +385,12 @@ export function extrairInformacoesCupom(texto: string): {
 } {
   if (!texto) return {};
 
-  const matchTag = texto.match(/cupom[:\s]+([A-Z0-9_-]{3,})/i) || texto.match(/use\s+o\s+c[óo]digo[:\s]+([A-Z0-9_-]{3,})/i);
+  // Amazon: "Salve o cupom R$170 : 170OFF" — código depois dos dois-pontos
+  const matchTag =
+    texto.match(/cupom\s+R\$\s*[\d.]+(?:,\d{2})?\s*:\s*([A-Z0-9_-]{3,})/i) ||
+    texto.match(/salve\s+o\s+cupom[^:]*:\s*([A-Z0-9_-]{3,})/i) ||
+    texto.match(/use\s+o\s+c[óo]digo[:\s]+([A-Z0-9_-]{3,})/i) ||
+    texto.match(/cupom[:\s]+([A-Z][A-Z0-9_-]{2,})/i);
   const cupomTag = matchTag ? matchTag[1].toUpperCase() : undefined;
 
   // 1. Tenta achar desconto percentual (ex: "10% OFF", "com 15% de desconto", "cupom 10%", "economize 5%")

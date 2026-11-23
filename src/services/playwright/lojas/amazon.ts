@@ -76,7 +76,7 @@ export async function verificarAmazon(page: Page, oferta: Oferta): Promise<Resul
     detalhesParcelamentoConfirmado,
     cupomTagConfirmado: calculoCupom.cupomTag || oferta.cupomTag,
     cupomDescontoConfirmado: calculoCupom.cupomDesconto || oferta.cupomDesconto,
-    precoComCupomConfirmado:
-      calculoCupom.precoComCupom !== undefined ? calculoCupom.precoComCupom + oferta.frete : oferta.precoComCupom,
+    // produto com cupom (sem frete)
+    precoComCupomConfirmado: calculoCupom.precoComCupom ?? oferta.precoComCupom,
   };
 }

@@ -2,7 +2,7 @@
 import { CHROME_HEADERS, detalheErro, http } from '../config/http';
 import { QNC_BUSCA_URLS } from '../config/regras';
 import { aceitarOferta } from '../domain/filtros';
-import { aplicarCupomEmOferta } from '../domain/cupons';
+import { aplicarCupomEmOferta, sanitizarCupomQnc } from '../domain/cupons';
 import { extrairPreco, formatBRL } from '../lib/preco';
 import { FonteScraper, Oferta, toOferta } from '../types/oferta';
 
@@ -46,7 +46,7 @@ export function parsearBuscaQNC(html: string): Oferta[] {
       fonteId: 'qnc',
     });
 
-    const ofertaComCupom = aplicarCupomEmOferta(oferta);
+    const ofertaComCupom = sanitizarCupomQnc(aplicarCupomEmOferta(oferta));
     if (aceitarOferta(ofertaComCupom)) {
       console.log(`[Qual Notebook Comprar] ${ofertaComCupom.titulo} => ${formatBRL(ofertaComCupom.precoComCupom ?? ofertaComCupom.precoAVista)}${ofertaComCupom.cupomTag ? ` [Cupom: ${ofertaComCupom.cupomTag}]` : ''} (Link: ${ofertaComCupom.url})`);
       ofertas.push(ofertaComCupom);
@@ -99,7 +99,7 @@ export function parsearBuscaQNC(html: string): Oferta[] {
         fonteId: 'qnc',
       });
 
-      const ofertaComCupom = aplicarCupomEmOferta(oferta);
+      const ofertaComCupom = sanitizarCupomQnc(aplicarCupomEmOferta(oferta));
       if (aceitarOferta(ofertaComCupom)) {
         console.log(`[Qual Notebook Comprar (Ofertas)] ${ofertaComCupom.titulo} (${ofertaComCupom.loja}) => ${formatBRL(ofertaComCupom.precoComCupom ?? ofertaComCupom.precoAVista)}${ofertaComCupom.cupomTag ? ` [Cupom: ${ofertaComCupom.cupomTag}]` : ''}`);
         ofertas.push(ofertaComCupom);

@@ -59,7 +59,8 @@ describe('amazon scraper', () => {
         </html>
       `;
       const bruta = parsearAmazon(html, itemExemplo);
-      expect(bruta.precoAVista).toBe(5499.0);
+      // precoAVista já com cupom da PDP; precoComCupom = produto (sem frete)
+      expect(bruta.precoAVista).toBe(5199.0);
       expect(bruta.precoParcelado).toBe(5499.0);
       expect(bruta.detalhesParcelamento).toContain('10x de R$');
       expect(bruta.cupomDesconto).toBe(300.0);

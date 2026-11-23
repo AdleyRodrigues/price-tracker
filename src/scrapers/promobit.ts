@@ -46,7 +46,8 @@ export function montarOfertaComunidade(
     url,
     cupomTag: calculoCupom.cupomTag || (cupomMencionado ? 'Cupom' : undefined),
     cupomDesconto: calculoCupom.cupomDesconto,
-    precoComCupom: calculoCupom.precoComCupom !== undefined ? calculoCupom.precoComCupom + FRETE_FALLBACK_COMUNIDADE : undefined,
+    // precoComCupom = produto (sem frete); frete fica em `frete`
+    precoComCupom: calculoCupom.precoComCupom,
     fonteId: 'promobit',
   };
 

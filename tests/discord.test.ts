@@ -69,7 +69,7 @@ describe('discord service', () => {
 
     it('formata cupom com destaque e preço final calculado', () => {
       const field = formatarItemField(ofertas[1], 1);
-      expect(field.value).toContain('🎟️ Cupom: `TUF10` (Total c/ cupom: **R$ 4.949,10**)');
+      expect(field.value).toContain('🎟️ Cupom: `TUF10` (Total c/ cupom: **R$ 5.049,10**)');
     });
 
     it('inclui alerta de 8 GB RAM para modelos que engasgam em 4K', () => {

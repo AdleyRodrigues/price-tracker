@@ -1,11 +1,13 @@
 ﻿import { describe, expect, it } from 'vitest';
 import {
   cupomAindaValido,
+  cupomCompativelComOferta,
   economiaEstimada,
   escolherMelhorCupom,
   slugsParaLoja,
   type CupomAtivo,
 } from '../src/services/cupons';
+import type { Oferta } from '../src/types/oferta';
 
 function cupom(partial: Partial<CupomAtivo> & Pick<CupomAtivo, 'code'>): CupomAtivo {
   return {
@@ -55,5 +57,51 @@ describe('cupons', () => {
 
   it('ignora cupons sem desconto utilizável', () => {
     expect(escolherMelhorCupom([cupom({ code: 'VAZIO' })], 7000)).toBeNull();
+  });
+
+  it('não aplica cupom de Fire TV em notebook', () => {
+    const fireTv = cupom({
+      code: 'FIRETVHD25',
+      title: '25% de desconto no Fire TV Stick HD',
+      discountPercent: 25,
+    });
+    const notebook: Oferta = {
+      loja: 'Amazon',
+      titulo: 'Acer Nitro V16 RTX 5050 Notebook Gamer',
+      precoAVista: 6951,
+      precoTotal: 6951,
+      frete: 0,
+      url: 'https://www.amazon.com.br/dp/B0HP3VN4NW',
+    };
+    expect(cupomCompativelComOferta(fireTv, notebook)).toBe(false);
+    expect(escolherMelhorCupom([fireTv], 6951, notebook)).toBeNull();
+  });
+
+  it('enriquecerOfertasComCupons não muta preço por padrão (notebooks)', async () => {
+    const { enriquecerOfertasComCupons, limparCacheCupons } = await import(
+      '../src/services/cupons'
+    );
+    limparCacheCupons();
+    const amazon: Oferta = {
+      loja: 'Amazon',
+      titulo: 'Acer Nitro V16 RTX 5050 Notebook Gamer',
+      precoAVista: 6951,
+      precoTotal: 6951,
+      frete: 0,
+      url: 'https://www.amazon.com.br/dp/B0HP3VN4NW',
+    };
+    const kabum: Oferta = {
+      loja: 'KaBuM!',
+      titulo: 'Notebook ASUS TUF F16 RTX 5060',
+      precoAVista: 7200,
+      precoTotal: 7200,
+      frete: 0,
+      url: 'https://www.kabum.com.br/produto/1',
+    };
+    const out = await enriquecerOfertasComCupons([amazon, kabum]);
+    expect(out[0]?.precoAVista).toBe(6951);
+    expect(out[0]?.cupomTag).toBeUndefined();
+    expect(out[1]?.precoAVista).toBe(7200);
+    expect(out[1]?.cupomTag).toBeUndefined();
   });
 });

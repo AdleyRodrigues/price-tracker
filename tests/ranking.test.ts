@@ -34,9 +34,9 @@ describe('ranking domain', () => {
 
   it('ordena ofertas pelo menor custo real considerando descontos de cupons', () => {
     const ordenadas = ordenarPorTotal(ofertas);
-    // 1º lugar deve ser a oferta com cupom (R$ 4950)
+    // 1º lugar: produto c/ cupom 4950 + frete 50 = 5000
     expect(ordenadas[0].loja).toBe('Comunidade (Promobit)');
-    expect(menorCustoReal(ordenadas[0])).toBe(4950.0);
+    expect(menorCustoReal(ordenadas[0])).toBe(5000.0);
 
     // 2º lugar deve ser Amazon (R$ 5100)
     expect(ordenadas[1].loja).toBe('Amazon');

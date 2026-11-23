@@ -1,4 +1,13 @@
-﻿export interface Oferta {
+﻿/**
+ * Semântica de preço (notebooks):
+ * - precoAVista = preço do produto na fonte (à vista/Pix da página; já com cupom
+ *   da própria página quando o HTML comprova).
+ * - frete = frete separado.
+ * - precoTotal = precoAVista + frete.
+ * - precoComCupom = preço do PRODUTO com cupom (sem frete), quando distinto.
+ * - cupomTag/cupomDesconto só quando extraídos do HTML da oferta/PDP.
+ */
+export interface Oferta {
   loja: string;
   titulo: string;
   precoTotal: number;
@@ -9,6 +18,7 @@
   url: string;
   cupomTag?: string;
   cupomDesconto?: number;
+  /** Preço do produto com cupom (sem frete). */
   precoComCupom?: number;
   precoParceladoComCupom?: number;
   detalhesParcelamentoComCupom?: string;
@@ -42,10 +52,11 @@ export interface FonteScraper {
 
 export function toOferta(bruta: OfertaBruta): Oferta {
   const precoTotal = Math.round((bruta.precoAVista + bruta.frete) * 100) / 100;
+  // precoComCupom = produto com cupom (sem frete)
   let precoComCupom = bruta.precoComCupom;
 
   if (!precoComCupom && bruta.cupomDesconto && bruta.cupomDesconto > 0) {
-    precoComCupom = Math.max(0, Math.round((bruta.precoAVista - bruta.cupomDesconto + bruta.frete) * 100) / 100);
+    precoComCupom = Math.max(0, Math.round((bruta.precoAVista - bruta.cupomDesconto) * 100) / 100);
   }
 
   const oferta: Oferta = {

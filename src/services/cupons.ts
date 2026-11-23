@@ -167,12 +167,41 @@ export function economiaEstimada(cupom: CupomAtivo, precoBase: number): number {
   return 0;
 }
 
+/**
+ * Evita aplicar cupom de outro produto/categoria (ex.: Fire TV em notebook).
+ * Se o texto do cupom cita um produto específico incompatível, descarta.
+ */
+export function cupomCompativelComOferta(cupom: CupomAtivo, oferta: Oferta): boolean {
+  const textoCupom = `${cupom.title} ${cupom.conditions ?? ''} ${cupom.code}`.toLowerCase();
+  const titulo = (oferta.titulo ?? '').toLowerCase();
+
+  const soOutroProduto =
+    /fire\s*tv|firetv|echo\s*dot|echo\s*show|kindle|audible|ring\s*camera|eero\s*wifi/.test(
+      textoCupom
+    );
+  const ehNotebookOuPc =
+    /notebook|laptop|ultrabook|macbook|acer|asus|avell|lenovo|dell|nitro|tuf|rog|legion|loq|gamer/.test(
+      titulo
+    );
+
+  if (soOutroProduto && ehNotebookOuPc) return false;
+  if (soOutroProduto && !/fire\s*tv|echo|kindle|audible/.test(titulo)) return false;
+
+  return true;
+}
+
 /** Escolhe o cupom com maior economia estimada. */
 export function escolherMelhorCupom(
   cupons: CupomAtivo[],
-  precoBase: number
+  precoBase: number,
+  oferta?: Oferta
 ): CupomAtivo | null {
-  const validos = cupons.filter((c) => cupomAindaValido(c) && economiaEstimada(c, precoBase) > 0);
+  const validos = cupons.filter(
+    (c) =>
+      cupomAindaValido(c) &&
+      economiaEstimada(c, precoBase) > 0 &&
+      (!oferta || cupomCompativelComOferta(c, oferta))
+  );
   if (validos.length === 0) return null;
   return validos.reduce((melhor, atual) =>
     economiaEstimada(atual, precoBase) > economiaEstimada(melhor, precoBase) ? atual : melhor
@@ -204,11 +233,24 @@ function aplicarCupomNaOferta(oferta: Oferta, cupom: CupomAtivo): Oferta {
 }
 
 /**
- * Para cada loja presente nas ofertas, busca cupons e aplica o melhor
- * nas ofertas que ainda não têm cupomTag.
+ * Notebooks: NÃO muta preço. CupomDescontos misturava códigos de outras categorias
+ * (ex.: Fire TV 25%) e a dash divergia da loja. Preço/cupom só vêm do scraper/PDP.
+ *
+ * Mantido no código para celular/experimentos futuros (`mutarPreco: true`).
  */
-export async function enriquecerOfertasComCupons(ofertas: Oferta[]): Promise<Oferta[]> {
+export async function enriquecerOfertasComCupons(
+  ofertas: Oferta[],
+  opts: { mutarPreco?: boolean } = {}
+): Promise<Oferta[]> {
   if (ofertas.length === 0) return ofertas;
+
+  const mutarPreco = opts.mutarPreco === true;
+  if (!mutarPreco) {
+    console.log(
+      '[cupons] CupomDescontos em modo somente-leitura (não altera precoAVista) — preço = fonte da loja'
+    );
+    return ofertas;
+  }
 
   const lojas = [...new Set(ofertas.map((o) => o.loja).filter(Boolean))];
   const cuponsPorLoja = new Map<string, CupomAtivo[]>();
@@ -223,9 +265,10 @@ export async function enriquecerOfertasComCupons(ofertas: Oferta[]): Promise<Ofe
 
   let aplicadas = 0;
   const out = ofertas.map((o) => {
-    if (o.cupomTag) return o; // já veio com cupom do scraper
+    if (o.cupomTag) return o;
+    if (/amazon/i.test(o.loja)) return o;
     const cupons = cuponsPorLoja.get(o.loja) ?? [];
-    const melhor = escolherMelhorCupom(cupons, o.precoAVista);
+    const melhor = escolherMelhorCupom(cupons, o.precoAVista, o);
     if (!melhor) return o;
     aplicadas += 1;
     return aplicarCupomNaOferta(o, melhor);

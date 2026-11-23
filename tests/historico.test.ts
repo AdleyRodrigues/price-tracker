@@ -36,7 +36,7 @@ describe('historico', () => {
     };
 
     const snap = ofertaParaSnapshotCelular(oferta, '2026-03-18T12:00:00.000Z');
-    expect(snap).toEqual({
+    expect(snap).toMatchObject({
       modulo: 'celular',
       produtoChave: 'xiaomi_17t_pro',
       loja: 'KaBuM!',
@@ -48,6 +48,25 @@ describe('historico', () => {
       fonteId: 'catalogo-celular',
       coletadoEm: '2026-03-18T12:00:00.000Z',
     });
+  });
+
+  it('usa precoComCupom como produto (sem subtrair frete de novo)', () => {
+    const oferta: Oferta = {
+      loja: 'Amazon',
+      titulo: 'Notebook ASUS TUF Gaming F16 FX608JHR RTX 5050 i5 16GB 512GB 16" 16:10',
+      precoAVista: 7000,
+      frete: 50,
+      precoTotal: 7050,
+      url: 'https://www.amazon.com.br/dp/B0TEST1234',
+      cupomTag: '170OFF',
+      cupomDesconto: 170,
+      precoComCupom: 6830,
+      fonteId: 'amazon',
+    };
+    const snap = ofertaParaSnapshotNotebook(oferta, '2026-03-18T12:00:00.000Z');
+    expect(snap?.precoAvista).toBe(6830);
+    expect(snap?.precoTotal).toBe(6880);
+    expect(snap?.cupomTag).toBe('170OFF');
   });
 
   it('retorna null quando o título não mapeia a um produto conhecido', () => {

@@ -1,7 +1,7 @@
 ﻿import axios from 'axios';
 import { USER_ID, WEBHOOK_URL } from '../config/env';
 import { CEP, TAMANHO_PODIO, THRESHOLD_ALERTA_CRITICO } from '../config/regras';
-import { podio } from '../domain/ranking';
+import { menorCustoReal, podio } from '../domain/ranking';
 import { formatBRL } from '../lib/preco';
 import { Oferta } from '../types/oferta';
 import { extrairHardware, formatarBadgeHardware } from '../domain/hardware';
@@ -70,8 +70,13 @@ export function formatarItemField(o: Oferta, index: number): { name: string; val
 
   if (o.cupomTag) {
     const descCupomTxt = o.cupomDesconto && o.cupomDesconto > 0 ? ` [Economia: -${formatBRL(o.cupomDesconto)}]` : '';
-    const txtCupomPreco = o.precoComCupom
-      ? ` (Total c/ cupom: **${formatBRL(o.precoComCupom)}**)`
+    // precoComCupom = produto; total de compra = + frete
+    const totalComCupom =
+      o.precoComCupom != null
+        ? Math.round((o.precoComCupom + o.frete) * 100) / 100
+        : undefined;
+    const txtCupomPreco = totalComCupom != null
+      ? ` (Total c/ cupom: **${formatBRL(totalComCupom)}**)`
       : '';
     linhas.push(`🎟️ Cupom: \`${o.cupomTag}\`${descCupomTxt}${txtCupomPreco}`);
   }
@@ -100,7 +105,7 @@ export function montarPayloadDiscord(
 
   const lugares = podio(ofertas, tamanho);
   const fields = lugares.map((o, i) => formatarItemField(o, i));
-  const menorPrecoEfetivo = melhor.precoComCupom ?? melhor.precoTotal;
+  const menorPrecoEfetivo = menorCustoReal(melhor);
   const ehAlertaCritico = menorPrecoEfetivo <= THRESHOLD_ALERTA_CRITICO;
   const mencao = ehAlertaCritico ? `<@${userId}> 🚨 **OPORTUNIDADE NOTEBOOK 4K ABAIXO DE ${formatBRL(THRESHOLD_ALERTA_CRITICO)}!**\n` : '';
 
@@ -140,7 +145,9 @@ export async function enviarParaDiscord(ofertas: Oferta[]): Promise<void> {
   lugares.forEach((o, i) => {
     const hw = extrairHardware(o.titulo);
     const hwTxt = [hw.gpu, hw.cpu, hw.ram, hw.ssd].filter(Boolean).join(' | ');
-    const cupomTxt = o.cupomTag ? ` [🎟️ Cupom: ${o.cupomTag} => Pix ${formatBRL(o.precoComCupom ?? o.precoTotal)}]` : '';
+    const cupomTxt = o.cupomTag
+      ? ` [🎟️ Cupom: ${o.cupomTag} => custo ${formatBRL(menorCustoReal(o))}]`
+      : '';
     console.log(
       `  ${medalhas[i] || `${i + 1}º`} ${o.loja} — à vista ${formatBRL(o.precoAVista)} + frete ${formatBRL(o.frete)} = ${formatBRL(o.precoTotal)}${cupomTxt}\n     ${hwTxt ? `[${hwTxt}]\n     ` : ''}${o.titulo}\n     Link: ${o.url}`
     );

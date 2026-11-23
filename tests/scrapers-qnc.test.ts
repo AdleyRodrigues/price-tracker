@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
+import { aplicarCupomEmOferta, sanitizarCupomQnc } from '../src/domain/cupons';
 import { parsearBuscaQNC } from '../src/scrapers/qnc';
+import type { Oferta } from '../src/types/oferta';
 
 describe('Qual Notebook Comprar Scraper', () => {
   it('extrai ofertas válidas com especificações e preço em formato pt-BR milhar', () => {
@@ -69,5 +71,30 @@ describe('Qual Notebook Comprar Scraper', () => {
 
     const ofertas = parsearBuscaQNC(html);
     expect(ofertas).toHaveLength(0);
+  });
+
+  it('aplica 170OFF recalculando preço; remove tag órfã sem regra', () => {
+    const com170: Oferta = {
+      loja: 'Amazon',
+      titulo: 'Notebook Acer Nitro V16 RTX 5050 16GB',
+      precoAVista: 6951,
+      precoTotal: 6951,
+      frete: 0,
+      url: 'https://www.amazon.com.br/dp/B0HP3VN4NW',
+      cupomTag: '170OFF',
+      fonteId: 'qnc',
+    };
+    const aplicada = aplicarCupomEmOferta(com170);
+    expect(aplicada.cupomTag).toBe('170OFF');
+    expect(aplicada.cupomDesconto).toBe(170);
+    expect(aplicada.precoComCupom).toBe(6781);
+
+    const orfã: Oferta = {
+      ...com170,
+      cupomTag: 'XYZRANDOM',
+    };
+    const limpa = sanitizarCupomQnc(aplicarCupomEmOferta(orfã));
+    expect(limpa.cupomTag).toBeUndefined();
+    expect(limpa.precoComCupom).toBeUndefined();
   });
 });

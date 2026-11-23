@@ -2,6 +2,7 @@ import * as cheerio from 'cheerio';
 import { CATALOGO, ItemCatalogo } from '../config/catalogo';
 import { baixarHtml, detalheErro } from '../config/http';
 import {
+  AMAZON_BUSCA_URLS,
   CEP,
   FRETE_FALLBACK_AMAZON,
   FRETE_FALLBACK_LEVEROS,
@@ -156,11 +157,16 @@ export function parsearAmazon(html: string, item: ItemCatalogo): OfertaBruta {
     }
   }
 
-  // 4. Extrair cupons de desconto ativos na Amazon (clip coupons / promo tags)
-  const textoCupons = $('#couponBadge, [data-csa-c-coupon-type], .promoPriceBlockMessage, [id*="coupon"], #apex_desktop')
+  // 4. Extrair cupons clip da buybox (não reaplicar % Pix já embutido em precoAVista)
+  const textoCupons = $('#couponBadge, [data-csa-c-coupon-type], .promoPriceBlockMessage, [id*="coupon"]')
     .text()
     .replace(/\s+/g, ' ');
   const cupomInfo = extrairInformacoesCupom(textoCupons);
+  // Ignora % genérico do texto Pix ("10% off à vista") — só cupom com valor/código real
+  if (cupomInfo.percentualDesconto && !cupomInfo.cupomDesconto && (!cupomInfo.cupomTag || cupomInfo.cupomTag === 'CUPOM')) {
+    delete cupomInfo.percentualDesconto;
+    delete cupomInfo.cupomTag;
+  }
   const calculoCupom = calcularPrecoComCupom(precoAVista, cupomInfo);
 
   console.log(`[${item.loja}] preço bruto extraído: "${precoBruto}" => ${formatBRL(precoAVista)}`);
@@ -215,17 +221,21 @@ export function parsearAmazon(html: string, item: ItemCatalogo): OfertaBruta {
     nomeLoja = `Amazon (${vendedor})`;
   }
 
+  // PDP: preço efetivo = lista com cupom da própria página (produto, sem frete).
+  const precoEfetivo =
+    calculoCupom.precoComCupom != null ? calculoCupom.precoComCupom : precoAVista;
+
   return {
     loja: nomeLoja,
     titulo: item.produto,
-    precoAVista,
+    precoAVista: precoEfetivo,
     precoParcelado,
     detalhesParcelamento,
     frete,
     url: item.url,
     cupomTag: calculoCupom.cupomTag,
     cupomDesconto: calculoCupom.cupomDesconto,
-    precoComCupom: calculoCupom.precoComCupom !== undefined ? calculoCupom.precoComCupom + frete : undefined,
+    precoComCupom: calculoCupom.precoComCupom,
     fonteId: 'amazon',
     sku: item.sku,
   };
@@ -273,10 +283,8 @@ export function parsearBuscaAmazon(html: string, item: ItemCatalogo): Oferta[] {
       precoParcelado = Math.round(qtd * vParc * 100) / 100;
     }
 
-    // Extrair cupom do card de busca (ex: "Cupom de R$ 200", "Economize 5%")
-    const cupomInfo = extrairInformacoesCupom(textoCard);
-    const calculoCupom = calcularPrecoComCupom(precoAVista, cupomInfo);
-
+    // SERP: NÃO aplica cupom do texto do card (falso positivo comum).
+    // Preço/cupom finais vêm do reparse PDP (`confirmarPrecosAmazonPdp`).
     const hrefRel = card.find('h2 a, a.a-link-normal[href*="/dp/"]').first().attr('href') ?? '';
     let url = hrefRel.startsWith('http')
       ? hrefRel
@@ -305,9 +313,6 @@ export function parsearBuscaAmazon(html: string, item: ItemCatalogo): Oferta[] {
       detalhesParcelamento,
       frete,
       url,
-      cupomTag: calculoCupom.cupomTag,
-      cupomDesconto: calculoCupom.cupomDesconto,
-      precoComCupom: calculoCupom.precoComCupom !== undefined ? calculoCupom.precoComCupom + frete : undefined,
       fonteId: 'amazon',
       sku: asin,
     };
@@ -417,11 +422,41 @@ async function rasparItem(item: ItemCatalogo): Promise<Oferta[]> {
   return [];
 }
 
+function itensAmazonParaColeta(): ItemCatalogo[] {
+  const doCatalogo = CATALOGO.filter((item) => item.parser === 'amazon');
+  const urlsCatalogo = new Set(doCatalogo.map((i) => i.url));
+
+  // Multi-marca (Acer/Dell/Gigabyte/…) — URLs que ainda não estão no catálogo TUF.
+  const extras: ItemCatalogo[] = AMAZON_BUSCA_URLS.filter((url) => !urlsCatalogo.has(url)).map(
+    (url, idx) => ({
+      loja: `Amazon (Busca multi-marca #${idx + 1})`,
+      produto: 'Notebook RTX (busca multi-marca)',
+      url,
+      parser: 'amazon',
+      freteFallback: FRETE_FALLBACK_AMAZON,
+    })
+  );
+
+  return [...doCatalogo, ...extras];
+}
+
 export const amazonScraper: FonteScraper = {
   id: 'amazon',
   async coletar(): Promise<Oferta[]> {
-    const itens = CATALOGO.filter((item) => item.parser === 'amazon');
+    const itens = itensAmazonParaColeta();
+    console.log(`[Amazon] ${itens.length} URL(s) de busca (catálogo + multi-marca)`);
     const settled = await Promise.allSettled(itens.map((item) => rasparItem(item)));
-    return settled.flatMap((r) => (r.status === 'fulfilled' ? r.value : []));
+    const todas = settled.flatMap((r) => (r.status === 'fulfilled' ? r.value : []));
+
+    // Dedup por ASIN/URL — menor preço de lista da SERP (PDP confirma depois).
+    const mapa = new Map<string, Oferta>();
+    for (const o of todas) {
+      const chave = (o.sku || o.url).toLowerCase();
+      const existente = mapa.get(chave);
+      if (!existente || o.precoAVista < existente.precoAVista) {
+        mapa.set(chave, o);
+      }
+    }
+    return [...mapa.values()];
   },
 };

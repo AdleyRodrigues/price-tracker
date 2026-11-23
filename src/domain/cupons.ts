@@ -119,6 +119,8 @@ export function aplicarCupomEmOferta(
   oferta: Oferta,
   regraOuCodigo?: CupomRegra | string
 ): Oferta {
+  const codigo = typeof regraOuCodigo === 'string' ? regraOuCodigo : regraOuCodigo?.codigo ?? oferta.cupomTag;
+
   const res = calcularDescontoCupom(
     oferta.loja,
     oferta.precoParcelado,
@@ -126,25 +128,48 @@ export function aplicarCupomEmOferta(
     regraOuCodigo ?? oferta.cupomTag
   );
 
-  if (!res) {
-    return oferta;
+  if (res) {
+    const nova: Oferta = {
+      ...oferta,
+      cupomTag: res.cupomTag,
+      cupomDesconto: res.cupomDesconto,
+      precoComCupom: res.precoComCupom,
+    };
+
+    if (res.precoParceladoComCupom) {
+      nova.precoParceladoComCupom = res.precoParceladoComCupom;
+    }
+    if (res.detalhesParcelamentoComCupom) {
+      nova.detalhesParcelamentoComCupom = res.detalhesParcelamentoComCupom;
+    }
+
+    return nova;
   }
 
-  const nova: Oferta = {
-    ...oferta,
-    cupomTag: res.cupomTag,
-    cupomDesconto: res.cupomDesconto,
-    precoComCupom: res.precoComCupom,
-  };
-
-  if (res.precoParceladoComCupom) {
-    nova.precoParceladoComCupom = res.precoParceladoComCupom;
+  // Cupom fixo estilo Amazon/QNC: "170OFF" → R$170 (só se recalcular preço)
+  const matchFixo = codigo?.trim().match(/^(\d+)\s*OFF$/i);
+  if (matchFixo) {
+    const valor = Number(matchFixo[1]);
+    if (Number.isFinite(valor) && valor > 0 && valor < oferta.precoAVista) {
+      const precoComCupom = Math.round((oferta.precoAVista - valor) * 100) / 100;
+      return {
+        ...oferta,
+        cupomTag: codigo!.trim().toUpperCase(),
+        cupomDesconto: valor,
+        precoComCupom,
+      };
+    }
   }
-  if (res.detalhesParcelamentoComCupom) {
-    nova.detalhesParcelamentoComCupom = res.detalhesParcelamentoComCupom;
-  }
 
-  return nova;
+  return oferta;
+}
+
+/** QNC: nunca grava cupomTag sem precoComCupom recalculado. */
+export function sanitizarCupomQnc(oferta: Oferta): Oferta {
+  if (!oferta.cupomTag) return oferta;
+  if (oferta.precoComCupom != null && oferta.precoComCupom > 0) return oferta;
+  const { cupomTag: _t, cupomDesconto: _d, ...rest } = oferta;
+  return rest as Oferta;
 }
 
 export function extrairCuponsQNC(html: string): CupomRegra[] {

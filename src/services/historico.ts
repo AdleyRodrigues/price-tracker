@@ -16,9 +16,14 @@ export interface PriceSnapshotInput {
   url: string;
   fonteId?: string;
   coletadoEm?: string;
+  /** Código do cupom quando o preço à vista já inclui desconto. */
+  cupomTag?: string | null;
+  cupomDesconto?: number | null;
 }
 
 const BATCH_SIZE = 50;
+
+let schemaCupomOk = false;
 
 function obterCliente(): Client | null {
   const url = process.env.TURSO_DATABASE_URL?.trim();
@@ -32,6 +37,29 @@ function obterCliente(): Client | null {
   const authToken = process.env.TURSO_AUTH_TOKEN?.trim();
   if (!authToken) return null;
   return createClient({ url, authToken });
+}
+
+/** Garante colunas de cupom (idempotente). */
+async function ensureCupomColumns(client: Client): Promise<void> {
+  if (schemaCupomOk) return;
+  for (const sql of [
+    'ALTER TABLE price_snapshots ADD COLUMN cupom_tag TEXT',
+    'ALTER TABLE price_snapshots ADD COLUMN cupom_desconto REAL',
+  ]) {
+    try {
+      await client.execute(sql);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      // Já existe / duplicate column — ok
+      if (!/duplicate column|already exists/i.test(msg)) {
+        // tabela pode não existir ainda em DB novo; ignora soft
+        if (!/no such table/i.test(msg)) {
+          console.warn(`[historico] migrate cupom: ${msg}`);
+        }
+      }
+    }
+  }
+  schemaCupomOk = true;
 }
 
 export function ofertaParaSnapshotCelular(
@@ -52,6 +80,8 @@ export function ofertaParaSnapshotCelular(
     url: oferta.url,
     fonteId: oferta.fonteId,
     coletadoEm,
+    cupomTag: oferta.cupomTag ?? null,
+    cupomDesconto: oferta.cupomDesconto ?? null,
   };
 }
 
@@ -69,13 +99,16 @@ export async function salvarHistorico(snapshots: PriceSnapshotInput[]): Promise<
   let gravados = 0;
 
   try {
+    await ensureCupomColumns(client);
+
     for (let i = 0; i < snapshots.length; i += BATCH_SIZE) {
       const lote = snapshots.slice(i, i + BATCH_SIZE);
       const statements = lote.map((s) => ({
         sql: `INSERT INTO price_snapshots (
             modulo, produto_chave, loja, titulo,
-            preco_avista, preco_total, frete, url, fonte_id, coletado_em
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            preco_avista, preco_total, frete, url, fonte_id, coletado_em,
+            cupom_tag, cupom_desconto
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         args: [
           s.modulo,
           s.produtoChave,
@@ -87,6 +120,8 @@ export async function salvarHistorico(snapshots: PriceSnapshotInput[]): Promise<
           s.url,
           s.fonteId ?? null,
           s.coletadoEm ?? new Date().toISOString(),
+          s.cupomTag?.trim() || null,
+          s.cupomDesconto ?? null,
         ] as InArgs,
       }));
 
@@ -112,17 +147,33 @@ export function ofertaParaSnapshotNotebook(
   const produtoChave = identificarProdutoChaveNotebook(oferta.titulo, oferta.sku);
   if (!produtoChave) return null;
 
+  // precoAVista já é o preço da fonte; precoComCupom = produto com cupom (sem frete).
+  let precoAvista = oferta.precoAVista;
+  if (
+    oferta.cupomTag &&
+    oferta.precoComCupom != null &&
+    Number.isFinite(oferta.precoComCupom) &&
+    oferta.precoComCupom > 0 &&
+    oferta.precoComCupom < precoAvista
+  ) {
+    precoAvista = Math.round(oferta.precoComCupom * 100) / 100;
+  }
+
+  const precoTotal = Math.round((precoAvista + oferta.frete) * 100) / 100;
+
   return {
     modulo: 'notebooks',
     produtoChave,
     loja: oferta.loja,
     titulo: oferta.titulo,
-    precoAvista: oferta.precoAVista,
-    precoTotal: oferta.precoTotal,
+    precoAvista,
+    precoTotal,
     frete: oferta.frete,
     url: oferta.url,
     fonteId: oferta.fonteId,
     coletadoEm,
+    cupomTag: oferta.cupomTag?.trim() || null,
+    cupomDesconto: oferta.cupomDesconto ?? null,
   };
 }
 

@@ -255,6 +255,14 @@ describe('filtros domain', () => {
       expect(info.cupomDesconto).toBe(300);
     });
 
+    it('extrai código Amazon no formato Salve o cupom R$170 : 170OFF', () => {
+      const info = extrairInformacoesCupom(
+        'Faça login para resgatar. Salve o cupom R$170 : 170OFF. Válido na sua primeira compra na Amazon'
+      );
+      expect(info.cupomTag).toBe('170OFF');
+      expect(info.cupomDesconto).toBe(170);
+    });
+
     it('calcula precoComCupom com porcentagem', () => {
       const info = { cupomTag: 'TUF10', percentualDesconto: 10 };
       const res = calcularPrecoComCupom(5000, info);
